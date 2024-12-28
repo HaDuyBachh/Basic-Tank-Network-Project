@@ -10,7 +10,6 @@ InputScene::InputScene()
 
 InputScene::~InputScene()
 {
-    
 }
 
 void InputScene::draw()
@@ -22,11 +21,11 @@ void InputScene::draw()
     renderer->drawRect(&AppConfig::status_rect, {0, 0, 0, 255}, true);
 
     // Input field
-    SDL_Point text_start = { 180, 120 };
+    SDL_Point text_start = { 20, 120 };  // Căn lề bên trái
     renderer->drawText(&text_start, "Input: " + m_input_text, {255, 255, 255, 255}, 2);
 
     // Back to menu text
-    text_start = { 180, 160 };
+    text_start = { 20, 160 };  // Căn lề bên trái
     renderer->drawText(&text_start, "Back to Menu (Press ESC)", {255, 255, 255, 255}, 2);
 
     renderer->flush();
@@ -51,14 +50,18 @@ void InputScene::eventProcess(SDL_Event *ev)
             // Process the input text if needed
             m_finished = true;
         }
+        else if(ev->key.keysym.sym == SDLK_BACKSPACE)
+        {
+            // Xóa ký tự cuối cùng khi bấm phím Backspace
+            if (!m_input_text.empty())
+            {
+                m_input_text.pop_back();
+            }
+        }
     }
     else if(ev->type == SDL_TEXTINPUT)
     {
         m_input_text += ev->text.text;
-    }
-    else if(ev->type == SDL_TEXTEDITING)
-    {
-        // Handle text editing
     }
 }
 
