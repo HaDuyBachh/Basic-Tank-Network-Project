@@ -93,6 +93,7 @@ void RoomScene::renderInputField(const std::string& label, const std::string& co
                       text_color, 2);
 }
 
+
 bool RoomScene::createRoom(const std::string& room_code) {
     WSADATA wsaData;
     WSAStartup(MAKEWORD(2, 2), &wsaData);

@@ -66,6 +66,30 @@ void writeRoomFile(const std::string& room_code, const std::string& host, const 
     }
 }
 
+// Hàm lấy danh sách người chơi trong phòng
+std::string handleGetPlayers(const std::string& room_code) {
+    pthread_mutex_lock(&rooms_mutex);
+    
+    // Kiểm tra phòng tồn tại
+    if (rooms.find(room_code) == rooms.end()) {
+        pthread_mutex_unlock(&rooms_mutex);
+        return "ROOM_NOT_FOUND";
+    }
+
+    // Lấy danh sách người chơi và ghép thành chuỗi, phân cách bằng dấu phẩy
+    const auto& room = rooms[room_code];
+    std::string player_list;
+    for (size_t i = 0; i < room.players.size(); ++i) {
+        player_list += room.players[i];
+        if (i < room.players.size() - 1) {
+            player_list += ",";
+        }
+    }
+
+    pthread_mutex_unlock(&rooms_mutex);
+    return player_list;
+}
+
 // Hàm xử lý rời phòng
 std::string handleLeaveRoom(const std::string& username, const std::string& room_code) {
     pthread_mutex_lock(&rooms_mutex);
@@ -288,6 +312,11 @@ void* handleTCPClient(void* arg) {
                              data.find("&password=") - (data.find("username=") + 9));
         std::string password = data.substr(data.find("&password=") + 10);
         response = handleSignup(username, password);
+    }
+    else if (request.find("get_players:") == 0) {
+        // Format: get_players:room_code
+        std::string room_code = request.substr(12); // Bỏ "get_players:"
+        response = handleGetPlayers(room_code);
     }
 
     send(client_socket, response.c_str(), response.length(), 0);
