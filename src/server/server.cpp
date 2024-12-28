@@ -7,6 +7,9 @@
 #include <pthread.h>
 #include <map>
 #include <algorithm>
+#include <windows.h>
+#include <direct.h>
+#include <sstream>
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -19,27 +22,22 @@ struct ClientData {
     struct sockaddr_in client_addr;
 };
 
-// Thông tin phòng chơi
 struct RoomInfo {
     std::string room_code;
     std::vector<std::string> players;
-    std::string host;     // Người tạo phòng
+    std::string host;     
     bool is_playing;
-
-    // Constructor để khởi tạo các thành viên
+    
     RoomInfo() : is_playing(false) {}
 };
-
-// Thông tin người chơi
 
 struct PlayerInfo {
     std::string username;
     bool is_authenticated;
     struct sockaddr_in udp_addr;
     std::string current_room;
-    bool is_host;         // Có phải host không
-
-    // Constructor
+    bool is_host;
+    
     PlayerInfo() : is_authenticated(false), is_host(false) {}
 };
 
@@ -49,18 +47,77 @@ std::map<std::string, RoomInfo> rooms;
 pthread_mutex_t players_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t rooms_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+// Hàm kiểm tra đăng nhập
+bool checkLogin(const std::string& username, const std::string& password) {
+    std::ifstream file("user.log");
+    std::string line;
+    
+    while (std::getline(file, line)) {
+        size_t pos = line.find(':');
+        if (pos != std::string::npos) {
+            std::string stored_username = line.substr(0, pos);
+            std::string stored_password = line.substr(pos + 1);
+            if (username == stored_username && password == stored_password) {
+                file.close();
+                return true;
+            }
+        }
+    }
+    file.close();
+    return false;
+}
 
-// Hàm xử lý tạo phòng mới
+// Hàm xử lý đăng ký
+std::string handleSignup(const std::string& username, const std::string& password) {
+    // Kiểm tra tài khoản tồn tại
+    std::ifstream check_file("user.log");
+    std::string line;
+    while (std::getline(check_file, line)) {
+        if (line.find(username + ":") == 0) {
+            check_file.close();
+            return "EXISTS";
+        }
+    }
+    check_file.close();
+
+    // Ghi tài khoản mới
+    std::ofstream user_file("user.log", std::ios::app);
+    if (user_file.is_open()) {
+        user_file << username << ":" << password << std::endl;
+        user_file.close();
+        return "OK";
+    }
+    return "ERROR";
+}
+
+// Hàm tạo và ghi file room
+void writeRoomFile(const std::string& room_code, const std::string& host, const std::vector<std::string>& players) {
+    CreateDirectory("rooms", NULL);
+    std::string filename = "rooms/room_" + room_code + ".txt";
+    std::ofstream room_file(filename);
+    if (room_file.is_open()) {
+        room_file << "=== Room Information ===" << std::endl;
+        room_file << "Room Code: " << room_code << std::endl;
+        room_file << "Host: " << host << std::endl;
+        room_file << "=== Players List ===" << std::endl;
+        int player_count = 1;
+        for (const auto& player : players) {
+            room_file << "Player " << player_count++ << ": " << player << std::endl;
+        }
+        room_file << "=== End of File ===" << std::endl;
+        room_file.close();
+    }
+}
+
+// Hàm xử lý tạo phòng
 std::string handleCreateRoom(const std::string& username, const std::string& room_code) {
     pthread_mutex_lock(&rooms_mutex);
     
-    // Kiểm tra phòng đã tồn tại
     if (rooms.find(room_code) != rooms.end()) {
         pthread_mutex_unlock(&rooms_mutex);
         return "ROOM_EXISTS";
     }
 
-    // Tạo phòng mới
     RoomInfo room;
     room.room_code = room_code;
     room.players.push_back(username);
@@ -68,7 +125,9 @@ std::string handleCreateRoom(const std::string& username, const std::string& roo
     room.is_playing = false;
     rooms[room_code] = room;
 
-    // Cập nhật thông tin người chơi
+    // Tạo file room mới
+    writeRoomFile(room_code, username, room.players);
+
     pthread_mutex_lock(&players_mutex);
     if (players.find(username) != players.end()) {
         players[username].current_room = room_code;
@@ -77,21 +136,20 @@ std::string handleCreateRoom(const std::string& username, const std::string& roo
     pthread_mutex_unlock(&players_mutex);
 
     pthread_mutex_unlock(&rooms_mutex);
-    return "ROOM_CREATED:" + room_code;
+    return "OK";
 }
 
 // Hàm xử lý tham gia phòng
 std::string handleJoinRoom(const std::string& username, const std::string& room_code) {
     pthread_mutex_lock(&rooms_mutex);
     
-    // Kiểm tra phòng tồn tại
     if (rooms.find(room_code) == rooms.end()) {
         pthread_mutex_unlock(&rooms_mutex);
         return "ROOM_NOT_FOUND";
     }
 
-    // Kiểm tra người chơi đã trong phòng
     auto& room = rooms[room_code];
+    
     for (const auto& player : room.players) {
         if (player == username) {
             pthread_mutex_unlock(&rooms_mutex);
@@ -99,10 +157,14 @@ std::string handleJoinRoom(const std::string& username, const std::string& room_
         }
     }
 
-    // Thêm người chơi vào phòng
-    room.players.push_back(username);
+    if (room.players.size() >= 2) {
+        pthread_mutex_unlock(&rooms_mutex);
+        return "ROOM_FULL";
+    }
 
-    // Cập nhật thông tin người chơi
+    room.players.push_back(username);
+    writeRoomFile(room_code, room.host, room.players);
+
     pthread_mutex_lock(&players_mutex);
     if (players.find(username) != players.end()) {
         players[username].current_room = room_code;
@@ -110,35 +172,8 @@ std::string handleJoinRoom(const std::string& username, const std::string& room_
     }
     pthread_mutex_unlock(&players_mutex);
 
-    // Tạo danh sách người chơi
-    std::string player_list = "ROOM_JOINED:" + room_code + ":";
-    for (const auto& player : room.players) {
-        player_list += player + ",";
-    }
-    if (!room.players.empty()) {
-        player_list.pop_back(); // Xóa dấu phẩy cuối cùng
-    }
-
     pthread_mutex_unlock(&rooms_mutex);
-    return player_list;
-}
-
-// Hàm cập nhật danh sách người chơi
-std::string getUpdatedPlayerList(const std::string& room_code) {
-    pthread_mutex_lock(&rooms_mutex);
-    std::string response = "PLAYER_LIST:";
-    
-    if (rooms.find(room_code) != rooms.end()) {
-        for (const auto& player : rooms[room_code].players) {
-            response += player + ",";
-        }
-        if (response.back() == ',') {
-            response.pop_back();
-        }
-    }
-    
-    pthread_mutex_unlock(&rooms_mutex);
-    return response;
+    return "OK";
 }
 
 // Hàm xử lý TCP client
@@ -150,56 +185,20 @@ void* handleTCPClient(void* arg) {
     char buffer[BUFFER_SIZE] = {0};
     recv(client_socket, buffer, sizeof(buffer), 0);
     std::string request(buffer);
-
     std::string response;
-    if (request.find("CREATE_ROOM:") == 0) {
-        // Format: CREATE_ROOM:username:room_code
-        size_t first_colon = request.find(':');
-        size_t second_colon = request.find(':', first_colon + 1);
-        std::string username = request.substr(first_colon + 1, second_colon - first_colon - 1);
-        std::string room_code = request.substr(second_colon + 1);
-        response = handleCreateRoom(username, room_code);
-    }
-    else if (request.find("JOIN_ROOM:") == 0) {
-        // Format: JOIN_ROOM:username:room_code
-        size_t first_colon = request.find(':');
-        size_t second_colon = request.find(':', first_colon + 1);
-        std::string username = request.substr(first_colon + 1, second_colon - first_colon - 1);
-        std::string room_code = request.substr(second_colon + 1);
-        response = handleJoinRoom(username, room_code);
-    }
-    else if (request.find("UPDATE_PLAYERS:") == 0) {
-        // Format: UPDATE_PLAYERS:room_code
-        std::string room_code = request.substr(request.find(':') + 1);
-        response = getUpdatedPlayerList(room_code);
-    }
-    else if (request.find("signin:") == 0) {
-        // Xử lý đăng nhập
-        std::string credentials = request.substr(7); // Bỏ qua "signin:"
+
+    if (request.find("signin:") == 0) {
+        // Format: signin:username&password
+        std::string credentials = request.substr(7);
         size_t separator = credentials.find('&');
         std::string username = credentials.substr(0, separator);
         std::string password = credentials.substr(separator + 1);
 
-        // Kiểm tra thông tin đăng nhập
-        std::ifstream user_log("user.log");
-        std::string line;
-        bool login_success = false;
-
-        while (std::getline(user_log, line)) {
-            if (line == username + ":" + password) {
-                login_success = true;
-                break;
-            }
-        }
-        user_log.close();
-
-        if (login_success) {
+        if (checkLogin(username, password)) {
             pthread_mutex_lock(&players_mutex);
             PlayerInfo player;
             player.username = username;
             player.is_authenticated = true;
-            player.current_room = "";
-            player.is_host = false;
             players[username] = player;
             pthread_mutex_unlock(&players_mutex);
             response = "OK";
@@ -207,42 +206,28 @@ void* handleTCPClient(void* arg) {
             response = "FAILED";
         }
     }
+    else if (request.find("create_room:") == 0) {
+        // Format: create_room:room_code:username
+        size_t first_colon = request.find(':');
+        size_t second_colon = request.find(':', first_colon + 1);
+        std::string room_code = request.substr(first_colon + 1, second_colon - first_colon - 1);
+        std::string username = request.substr(second_colon + 1);
+        response = handleCreateRoom(username, room_code);
+    }
+    else if (request.find("join_room:") == 0) {
+        // Format: join_room:room_code:username
+        size_t first_colon = request.find(':');
+        size_t second_colon = request.find(':', first_colon + 1);
+        std::string room_code = request.substr(first_colon + 1, second_colon - first_colon - 1);
+        std::string username = request.substr(second_colon + 1);
+        response = handleJoinRoom(username, room_code);
+    }
     else {
-        // Xử lý đăng ký như cũ
+        // Xử lý đăng ký
         std::string username = request.substr(request.find("username=") + 9, 
                              request.find("&password=") - (request.find("username=") + 9));
         std::string password = request.substr(request.find("&password=") + 10);
-
-        std::ifstream user_log("user.log");
-        std::string line;
-        bool user_exists = false;
-
-        while (std::getline(user_log, line)) {
-            if (line.find(username) != std::string::npos) {
-                user_exists = true;
-                break;
-            }
-        }
-        user_log.close();
-
-        if (!user_exists) {
-            std::ofstream user_log("user.log", std::ios::app);
-            user_log << username << ":" << password << std::endl;
-            user_log.close();
-
-            pthread_mutex_lock(&players_mutex);
-            PlayerInfo player;
-            player.username = username;
-            player.is_authenticated = true;
-            player.current_room = "";
-            player.is_host = false;
-            players[username] = player;
-            pthread_mutex_unlock(&players_mutex);
-
-            response = "OK";
-        } else {
-            response = "EXISTS";
-        }
+        response = handleSignup(username, password);
     }
 
     send(client_socket, response.c_str(), response.length(), 0);
@@ -250,87 +235,25 @@ void* handleTCPClient(void* arg) {
     return nullptr;
 }
 
-// Xử lý UDP data (game state)
-void* handleUDP(void* arg) {
-    SOCKET udp_socket = *static_cast<SOCKET*>(arg);
-    char buffer[BUFFER_SIZE];
-    struct sockaddr_in client_addr;
-    int client_addr_len = sizeof(client_addr);
-
-    while (true) {
-        memset(buffer, 0, BUFFER_SIZE);
-        int recv_len = recvfrom(udp_socket, buffer, BUFFER_SIZE, 0,
-                               (struct sockaddr*)&client_addr, &client_addr_len);
-
-        if (recv_len > 0) {
-            // Giả sử format: "username:x:y:direction"
-            std::string data(buffer);
-            size_t first_colon = data.find(':');
-            if (first_colon != std::string::npos) {
-                std::string username = data.substr(0, first_colon);
-                
-                // Update player's UDP address
-                pthread_mutex_lock(&players_mutex);
-                if (players.find(username) != players.end()) {
-                    players[username].udp_addr = client_addr;
-                    
-                    // Broadcast position to all other players
-                    for (auto& player : players) {
-                        if (player.first != username && player.second.is_authenticated) {
-                            sendto(udp_socket, buffer, recv_len, 0,
-                                  (struct sockaddr*)&player.second.udp_addr,
-                                  sizeof(player.second.udp_addr));
-                        }
-                    }
-                }
-                pthread_mutex_unlock(&players_mutex);
-            }
-        }
-    }
-    return nullptr;
-}
-
+// Main function
 int main() {
     WSADATA wsaData;
     WSAStartup(MAKEWORD(2, 2), &wsaData);
 
-    // Khởi tạo TCP socket
     SOCKET tcp_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     struct sockaddr_in tcp_addr;
     tcp_addr.sin_family = AF_INET;
     tcp_addr.sin_port = htons(TCP_PORT);
     tcp_addr.sin_addr.s_addr = INADDR_ANY;
 
-    // Bind TCP socket
     if (bind(tcp_socket, (struct sockaddr*)&tcp_addr, sizeof(tcp_addr)) == SOCKET_ERROR) {
         std::cout << "TCP bind failed" << std::endl;
         return 1;
     }
     listen(tcp_socket, 5);
 
-    // Khởi tạo UDP socket
-    SOCKET udp_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    struct sockaddr_in udp_addr;
-    udp_addr.sin_family = AF_INET;
-    udp_addr.sin_port = htons(UDP_PORT);
-    udp_addr.sin_addr.s_addr = INADDR_ANY;
+    std::cout << "Server running on TCP port " << TCP_PORT << std::endl;
 
-    // Bind UDP socket
-    if (bind(udp_socket, (struct sockaddr*)&udp_addr, sizeof(udp_addr)) == SOCKET_ERROR) {
-        std::cout << "UDP bind failed" << std::endl;
-        closesocket(tcp_socket);
-        return 1;
-    }
-
-    // Tạo thread xử lý UDP
-    pthread_t udp_thread;
-    pthread_create(&udp_thread, nullptr, handleUDP, &udp_socket);
-    pthread_detach(udp_thread);
-
-    std::cout << "Server running on TCP port " << TCP_PORT 
-              << " and UDP port " << UDP_PORT << std::endl;
-
-    // Main loop xử lý TCP connections
     while (true) {
         ClientData* client_data = new ClientData;
         int client_size = sizeof(client_data->client_addr);
@@ -343,7 +266,6 @@ int main() {
     }
 
     closesocket(tcp_socket);
-    closesocket(udp_socket);
     WSACleanup();
     return 0;
 }

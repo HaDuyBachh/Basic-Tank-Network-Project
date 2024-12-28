@@ -1,0 +1,6 @@
+=== Room Information ===
+Room Code: 123
+Host: bach
+=== Players List ===
+Player 1: bach
+=== End of File ===

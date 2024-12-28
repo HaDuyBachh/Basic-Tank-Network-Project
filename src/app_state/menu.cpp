@@ -81,17 +81,17 @@ void Menu::draw()
     int i = 0;
     SDL_Point text_start;
     
-    // Nếu đã đăng nhập, chỉ hiển thị text đã đăng nhập
-    if (s_is_logged_in) {
-        text_start = {160, 160};
-        renderer->drawText(&text_start, "Logged in as: " + s_logged_in_username, {0, 255, 0, 255}, 2);
-    } else {
-        // Hiển thị menu bình thường
-        for(auto text : m_menu_texts) {
-            text_start = {160, (i + 1) * 32 + 120};
-            i++;
+    // Hiển thị tất cả menu items, kể cả khi đã đăng nhập
+    for(auto text : m_menu_texts) {
+        text_start = {160, (i + 1) * 32 + 120};
+        
+        // Nếu là welcome message thì đổi màu
+        if (s_is_logged_in && i == 0) {
+            renderer->drawText(&text_start, text, {0, 255, 0, 255}, 2);
+        } else {
             renderer->drawText(&text_start, text, {255, 255, 255, 255}, 2);
         }
+        i++;
     }
 
     m_tank_pointer->draw();
@@ -147,6 +147,7 @@ AppState* Menu::nextState() {
         // Menu cho người dùng đã đăng nhập
         switch(m_menu_index) {
             case 0:
+                return nullptr;
             case 1: // Create Room
                 return new RoomScene(true);
             case 2: // Join Room
