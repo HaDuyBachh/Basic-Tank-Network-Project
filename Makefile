@@ -9,7 +9,7 @@ ifeq ($(OS),Windows_NT)
 	INCLUDEPATH = -I$(RESOURCES_DIR)/SDL/i686-w64-mingw32/include
 	LFLAGS = -mwindows -O
 	CFLAGS = -c -Wall
-	LIBS = -L$(RESOURCES_DIR)/SDL/i686-w64-mingw32/lib -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf
+	LIBS = -L$(RESOURCES_DIR)/SDL/i686-w64-mingw32/lib -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf -lws2_32
 	APP_RESOURCES = SDL/i686-w64-mingw32/bin/*.dll dll/*.dll font/prstartk.ttf png/texture.png levels
 	RESOURCES = $(APP_RESOURCES) mingw_resources
 else
