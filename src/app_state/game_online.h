@@ -1,5 +1,5 @@
-#ifndef GAME_H
-#define GAME_H
+#ifndef GAME_ONLINE_H
+#define GAME_ONLINE_H
 #include "appstate.h"
 #include "../objects/object.h"
 #include "../objects/player.h"
@@ -14,28 +14,28 @@
 /**
  * @brief Klasa odpowiada za ruch wszytkich czołgów oraz interaakcje między czołgami oraz między czołgami a innymi obiektami na mapie
  */
-class Game : public AppState
+class Game_Online : public AppState
 {
 public:
     /**
      * Domyślny konstruktor - umożliwia grę dla jednego gracza
      */
-    Game();
+    Game_Online();
     /**
      * Konstruktor pozwalający podać początkową liczbę graczy. Liczba graczy może być równa 1 lub 2, każda inna wartość spowoduje uruchomienie gry dla jednego gracza.
      * Konstruktor jest wywoływany w @a Menu::nextState.
      * @param players_count - liczba graczy 1 lub 2
      */
-    Game(int players_count);
+    Game_Online(int players_count);
     /**
      * Konstruktor przyjmujący już isteniejących graczy.
      * Wywoływany w @a Score::nextState
      * @param players - kontener z graczami
      * @param previous_level - zmienna przechowująca numer poprzedniego poziomu
      */
-    Game(std::vector<Player*> players, int previous_level);
+    Game_Online(std::vector<Player*> players, int previous_level);
 
-    ~Game();
+    ~Game_Online();
     /**
      * Funkcja zwraca @a true jeśli gracza zniszczył wszystkich przeciwników albo gdy orzełek został trafiony lub gracz stracił wszystkie życia, czyli nastąpiła przegrana.
      * @return @a true lub @a false

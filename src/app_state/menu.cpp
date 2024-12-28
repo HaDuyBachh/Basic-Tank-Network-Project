@@ -5,6 +5,7 @@
 #include "../type.h"
 #include "../app_state/game.h"
 #include "input_scene.h"
+#include "game_online.h"
 
 #include <iostream>
 
@@ -109,11 +110,13 @@ AppState* Menu::nextState()
         return nullptr;
     else if(m_menu_index == 0)
     {
-        return new InputScene();
+        // return new InputScene();
+        Game_Online* g = new Game_Online();
+        return g;
     }
     else if(m_menu_index == 1)
     {
-        Game* g = new Game(1);
+        Game* g = new Game(1); 
         return g;
     }
     else if(m_menu_index == 2)
