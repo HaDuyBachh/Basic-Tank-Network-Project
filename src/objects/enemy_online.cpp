@@ -1,10 +1,10 @@
-#include "enemy.h"
+#include "enemy_online.h"
 #include "../appconfig.h"
 #include <stdlib.h>
 #include <ctime>
 #include <iostream>
 
-Enemy::Enemy()
+Enemy_Online::Enemy_Online()
     : Tank(AppConfig::enemy_starting_point.at(0).x, AppConfig::enemy_starting_point.at(0).y, ST_TANK_A)
 {
     direction = D_DOWN;
@@ -32,7 +32,7 @@ Enemy::Enemy()
     respawn();
 }
 
-Enemy::Enemy(double x, double y, SpriteType type)
+Enemy_Online::Enemy_Online(double x, double y, SpriteType type)
     : Tank(x, y, type)
 {
     direction = D_DOWN;
@@ -60,7 +60,7 @@ Enemy::Enemy(double x, double y, SpriteType type)
     respawn();
 }
 
-void Enemy::draw()
+void Enemy_Online::draw()
 {
     if(to_erase) return;
     if(AppConfig::show_enemy_target)
@@ -78,7 +78,7 @@ void Enemy::draw()
     Tank::draw();
 }
 
-void Enemy::update(Uint32 dt)
+void Enemy_Online::update(Uint32 dt)
 {
     if(to_erase) return;
     Tank::update(dt);
@@ -174,7 +174,7 @@ void Enemy::update(Uint32 dt)
     stop = false;
 }
 
-void Enemy::destroy()
+void Enemy_Online::destroy()
 {
     lives_count--;
 //    clearFlag(TSF_BONUS); //możliwe jednokrotne wypadnięcie bonusu
@@ -185,7 +185,7 @@ void Enemy::destroy()
     }
 }
 
-unsigned Enemy::scoreForHit()
+unsigned Enemy_Online::scoreForHit()
 {
     if(lives_count > 0) return 50;
     return 100;
