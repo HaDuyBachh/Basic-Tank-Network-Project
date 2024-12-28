@@ -281,11 +281,12 @@ void* handleTCPClient(void* arg) {
         std::string username = request.substr(second_colon + 1);
         response = handleJoinRoom(username, room_code);
     }
-    else {
+    else if (request.find("signup:") == 0) {
         // Xử lý đăng ký
-        std::string username = request.substr(request.find("username=") + 9, 
-                             request.find("&password=") - (request.find("username=") + 9));
-        std::string password = request.substr(request.find("&password=") + 10);
+        std::string data = request.substr(7);
+        std::string username = data.substr(data.find("username=") + 9, 
+                             data.find("&password=") - (data.find("username=") + 9));
+        std::string password = data.substr(data.find("&password=") + 10);
         response = handleSignup(username, password);
     }
 

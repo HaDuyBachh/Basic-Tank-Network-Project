@@ -157,7 +157,7 @@ bool SignupScene::connectToServer(const std::string& username, const std::string
     server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
     if (connect(sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) == 0) {
-        std::string request = "username=" + username + "&password=" + password;
+        std::string request = "signup:username=" + username + "&password=" + password;
         send(sock, request.c_str(), request.length(), 0);
 
         char buffer[1024] = {0};
