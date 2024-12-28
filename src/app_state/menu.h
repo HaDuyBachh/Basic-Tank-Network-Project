@@ -37,6 +37,11 @@ public:
      * @li Esc - wyjście z programu
      * @param ev -  wskaźnik na unię SDL_Event przechowującą typ i parametry różnych zdarzeń
      */
+
+    static void setLoggedInStatus(bool status, const std::string& username);
+    static bool isLoggedIn();
+    static std::string getLoggedInUsername();
+
     void eventProcess(SDL_Event* ev);
     /**
      * Pzejście do gry w wybranym trybie lub wyjście z aplikacji.
@@ -61,6 +66,12 @@ private:
      * Zmienna przechowuje informację, czy należy zakończyć bieżący stan gry i przejść do gry lub wyłączyć aplikację.
      */
     bool m_finished;
+
+    bool m_is_logged_in;
+    std::string m_logged_in_username;
+
+    static bool s_is_logged_in;
+    static std::string s_logged_in_username;
 };
 
 #endif // MENU_H

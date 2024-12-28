@@ -127,8 +127,9 @@ void SigninScene::submitSignin() {
 
     if (connectToServer(m_username, m_password)) {
         m_signin_success = true;
-        current_user = m_username; // Lưu tên người dùng hiện tại
-        SDL_Delay(2000);
+        // Set trạng thái đăng nhập trong Menu
+        Menu::setLoggedInStatus(true, m_username);
+        SDL_Delay(1000); // Hiển thị thông báo thành công
         m_finished = true;
     }
 }
