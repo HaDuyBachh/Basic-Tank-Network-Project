@@ -47,7 +47,7 @@ Menu::Menu()
     m_menu_index = 0;
     m_tank_pointer = new Player(0, 0, ST_PLAYER_1);
     m_tank_pointer->direction = D_RIGHT;    
-    m_tank_pointer->pos_x = 130;
+    m_tank_pointer->pos_x = 120;
     m_tank_pointer->pos_y = (m_menu_index + 1) * 32 + 112;
     m_tank_pointer->setFlag(TSF_LIFE);
     m_tank_pointer->update(0);
@@ -144,12 +144,14 @@ AppState* Menu::nextState() {
         // Menu cho người dùng đã đăng nhập
         switch(m_menu_index) {
             case 0: // Start Game
-                return new Game(1);
-            case 1: // Logout
+                //return new Game(1);
+            case 1:
+                
+            case 2: // Logout
                 s_is_logged_in = false;
                 s_logged_in_username = "";
                 return new Menu();
-            case 2: // Exit
+            case 3: // Exit
                 return nullptr;
         }
     } else {
