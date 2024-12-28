@@ -8,6 +8,7 @@
 #include "game_online.h"
 #include "signup_scene.h"
 #include "signin_scene.h"
+#include "room_scene.h"
 
 #include <iostream>
 
@@ -33,7 +34,9 @@ Menu::Menu()
     if (s_is_logged_in) {
         m_menu_texts.clear();
         m_menu_texts.push_back("Welcome " + s_logged_in_username);
-        m_menu_texts.push_back("Start Game");
+        m_menu_texts.push_back("Create Room");
+        m_menu_texts.push_back("Join Room");
+        m_menu_texts.push_back("Single Player");
         m_menu_texts.push_back("Logout");
         m_menu_texts.push_back("Exit");
     } else {
@@ -143,15 +146,18 @@ AppState* Menu::nextState() {
     if (s_is_logged_in) {
         // Menu cho người dùng đã đăng nhập
         switch(m_menu_index) {
-            case 0: // Start Game
-                //return new Game(1);
-            case 1:
-                
-            case 2: // Logout
+            case 0:
+            case 1: // Create Room
+                return new RoomScene(true);
+            case 2: // Join Room
+                return new RoomScene(false);    
+            case 3:// Join Room
+                return new Game(1);
+            case 4: // Logout
                 s_is_logged_in = false;
                 s_logged_in_username = "";
                 return new Menu();
-            case 3: // Exit
+            case 5: // Exit
                 return nullptr;
         }
     } else {
