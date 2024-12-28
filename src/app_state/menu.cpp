@@ -7,12 +7,14 @@
 #include "input_scene.h"
 #include "game_online.h"
 #include "signup_scene.h"
+#include "signin_scene.h"
 
 #include <iostream>
 
 Menu::Menu()
 {
     //m_menu_texts.push_back("Join With Code");
+    m_menu_texts.push_back("Sign In");
     m_menu_texts.push_back("Sign Up");
     m_menu_texts.push_back("1 Player");
     m_menu_texts.push_back("2 Players");
@@ -110,6 +112,12 @@ AppState* Menu::nextState()
 {
     if(m_menu_index == m_menu_texts.size() - 1)
         return nullptr;
+    else if(m_menu_index == 0)
+    {
+        return new SigninScene();
+        //Game_Online* g = new Game_Online();
+        //return g;
+    }
     else if(m_menu_index == 0)
     {
         return new SignupScene();
