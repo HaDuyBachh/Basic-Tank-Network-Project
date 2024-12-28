@@ -47,9 +47,79 @@ std::map<std::string, RoomInfo> rooms;
 pthread_mutex_t players_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t rooms_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+// Hàm tạo và ghi file room
+void writeRoomFile(const std::string& room_code, const std::string& host, const std::vector<std::string>& players) {
+    CreateDirectory("rooms", NULL);
+    std::string filename = "rooms/room_" + room_code + ".txt";
+    std::ofstream room_file(filename);
+    if (room_file.is_open()) {
+        room_file << "=== Room Information ===" << std::endl;
+        room_file << "Room Code: " << room_code << std::endl;
+        room_file << "Host: " << host << std::endl;
+        room_file << "=== Players List ===" << std::endl;
+        int player_count = 1;
+        for (const auto& player : players) {
+            room_file << "Player " << player_count++ << ": " << player << std::endl;
+        }
+        room_file << "=== End of File ===" << std::endl;
+        room_file.close();
+    }
+}
+
+// Hàm xử lý rời phòng
+std::string handleLeaveRoom(const std::string& username, const std::string& room_code) {
+    pthread_mutex_lock(&rooms_mutex);
+    
+    printf("Dang Roi Phong");
+
+    if (rooms.find(room_code) == rooms.end()) {
+        pthread_mutex_unlock(&rooms_mutex);
+        printf("ROOM_NOT_FOUND");
+        return "ROOM_NOT_FOUND";
+    }
+
+    auto& room = rooms[room_code];
+    
+    // Tìm và xóa người chơi khỏi danh sách
+    auto it = std::find(room.players.begin(), room.players.end(), username);
+    if (it != room.players.end()) {
+        room.players.erase(it);
+        
+        // Nếu là host rời phòng hoặc phòng không còn ai
+        if (username == room.host || room.players.empty()) {
+            // Xóa file phòng
+            std::string filename = "rooms/room_" + room_code + ".txt";
+            remove(filename.c_str());
+            
+            // Xóa phòng khỏi danh sách
+            rooms.erase(room_code);
+            
+            pthread_mutex_unlock(&rooms_mutex);
+            printf("ROOM_DELETED");
+            return "ROOM_DELETED";
+        } else {
+            // Cập nhật file phòng
+            writeRoomFile(room_code, room.host, room.players);
+        }
+
+        pthread_mutex_lock(&players_mutex);
+        if (players.find(username) != players.end()) {
+            players[username].current_room = "";
+            players[username].is_host = false;
+        }
+        pthread_mutex_unlock(&players_mutex);
+        
+        pthread_mutex_unlock(&rooms_mutex);
+        return "OK";
+    }
+
+    pthread_mutex_unlock(&rooms_mutex);
+    return "PLAYER_NOT_FOUND";
+}
+
 // Hàm kiểm tra đăng nhập
 bool checkLogin(const std::string& username, const std::string& password) {
-    std::ifstream file("user.log");
+    std::ifstream file("user.txt");
     std::string line;
     
     while (std::getline(file, line)) {
@@ -70,7 +140,7 @@ bool checkLogin(const std::string& username, const std::string& password) {
 // Hàm xử lý đăng ký
 std::string handleSignup(const std::string& username, const std::string& password) {
     // Kiểm tra tài khoản tồn tại
-    std::ifstream check_file("user.log");
+    std::ifstream check_file("user.txt");
     std::string line;
     while (std::getline(check_file, line)) {
         if (line.find(username + ":") == 0) {
@@ -81,32 +151,13 @@ std::string handleSignup(const std::string& username, const std::string& passwor
     check_file.close();
 
     // Ghi tài khoản mới
-    std::ofstream user_file("user.log", std::ios::app);
+    std::ofstream user_file("user.txt", std::ios::app);
     if (user_file.is_open()) {
         user_file << username << ":" << password << std::endl;
         user_file.close();
         return "OK";
     }
     return "ERROR";
-}
-
-// Hàm tạo và ghi file room
-void writeRoomFile(const std::string& room_code, const std::string& host, const std::vector<std::string>& players) {
-    CreateDirectory("rooms", NULL);
-    std::string filename = "rooms/room_" + room_code + ".txt";
-    std::ofstream room_file(filename);
-    if (room_file.is_open()) {
-        room_file << "=== Room Information ===" << std::endl;
-        room_file << "Room Code: " << room_code << std::endl;
-        room_file << "Host: " << host << std::endl;
-        room_file << "=== Players List ===" << std::endl;
-        int player_count = 1;
-        for (const auto& player : players) {
-            room_file << "Player " << player_count++ << ": " << player << std::endl;
-        }
-        room_file << "=== End of File ===" << std::endl;
-        room_file.close();
-    }
 }
 
 // Hàm xử lý tạo phòng
@@ -205,6 +256,14 @@ void* handleTCPClient(void* arg) {
         } else {
             response = "FAILED";
         }
+    }
+    else if (request.find("leave_room:") == 0) {
+        // Format: leave_room:room_code:username
+        size_t first_colon = request.find(':');
+        size_t second_colon = request.find(':', first_colon + 1);
+        std::string room_code = request.substr(first_colon + 1, second_colon - first_colon - 1);
+        std::string username = request.substr(second_colon + 1);
+        response = handleLeaveRoom(username, room_code);
     }
     else if (request.find("create_room:") == 0) {
         // Format: create_room:room_code:username

@@ -18,6 +18,9 @@ RoomScene::RoomScene(bool isHost) {
 }
 
 RoomScene::~RoomScene() {
+    if (m_room_joined) {
+        leaveRoom();
+    }
 }
 
 void RoomScene::draw() {
@@ -158,6 +161,29 @@ bool RoomScene::joinRoom(const std::string& room_code) {
     return false;
 }
 
+void RoomScene::leaveRoom() {
+    WSADATA wsaData;
+    WSAStartup(MAKEWORD(2, 2), &wsaData);
+    
+    SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    struct sockaddr_in server_addr;
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(8888);
+    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+    if (connect(sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) == 0) {
+        std::string request = "leave_room:" + m_current_room_code + ":" + 
+                            Menu::getLoggedInUsername();
+        send(sock, request.c_str(), request.length(), 0);
+
+        char buffer[1024] = {0};
+        recv(sock, buffer, sizeof(buffer), 0);
+    }
+
+    closesocket(sock);
+    WSACleanup();
+}
+
 void RoomScene::updatePlayerList() {
     WSADATA wsaData;
     WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -200,6 +226,9 @@ void RoomScene::eventProcess(SDL_Event* ev) {
     if (ev->type == SDL_KEYDOWN) {
         switch (ev->key.keysym.sym) {
             case SDLK_ESCAPE:
+                if (m_room_joined) {
+                    leaveRoom();
+                }
                 m_back_to_menu = true;
                 m_finished = true;
                 break;

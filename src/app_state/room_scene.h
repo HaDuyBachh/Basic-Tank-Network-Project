@@ -19,6 +19,7 @@ private:
     void renderInputField(const std::string& label, const std::string& content, 
                          int yPos, bool isSelected);
     bool createRoom(const std::string& room_code);
+    void leaveRoom();
     bool joinRoom(const std::string& room_code);
     void updatePlayerList();
 
