@@ -4,17 +4,19 @@
 #include "../appconfig.h"
 #include "../type.h"
 #include "../app_state/game.h"
+#include "input_scene.h"
 
 #include <iostream>
 
 Menu::Menu()
 {
+    m_menu_texts.push_back("Join With Code");
     m_menu_texts.push_back("1 Player");
     m_menu_texts.push_back("2 Players");
     m_menu_texts.push_back("Exit");
     m_menu_index = 0;
     m_tank_pointer = new Player(0, 0 , ST_PLAYER_1);
-    m_tank_pointer->direction = D_RIGHT;
+    m_tank_pointer->direction = D_RIGHT;    
     m_tank_pointer->pos_x = 144;
     m_tank_pointer->pos_y = (m_menu_index + 1) * 32 + 112;
     m_tank_pointer->setFlag(TSF_LIFE);
@@ -107,10 +109,14 @@ AppState* Menu::nextState()
         return nullptr;
     else if(m_menu_index == 0)
     {
+        return new InputScene();
+    }
+    else if(m_menu_index == 1)
+    {
         Game* g = new Game(1);
         return g;
     }
-    else if(m_menu_index == 1)
+    else if(m_menu_index == 2)
     {
         Game* g = new Game(2);
         return g;
