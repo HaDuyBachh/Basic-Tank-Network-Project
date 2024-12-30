@@ -20,6 +20,11 @@ void Bonus::draw()
     if(m_show) Object::draw();
 }
 
+void Bonus::drawOnline()
+{
+    Object::draw();
+}
+
 void Bonus::update(Uint32 dt)
 {
     Object::update(dt);

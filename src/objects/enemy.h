@@ -26,6 +26,7 @@ public:
      * Funkcja rysuje czołg przeciwnika i jeżeli jest ustawiona flaga @a AppConfig::show_enemy_target to rysuję linią łączącą czołg z jego celem.
      */
     void draw();
+    void drawOnline();
     /**
      * Funkcja uaktualnia położenie czołgu oraz decyduje o kirunku i czasie kolejnego wystrzału w zależności od typy wroga.
      * @param dt - czas od ostatniego wywołania funkcji

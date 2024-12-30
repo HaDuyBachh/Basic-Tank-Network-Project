@@ -66,6 +66,7 @@ public:
      * Funkcja odpowiada za wyczyszczenie wszystkich flag i włączenie animacji powstawania czołgu.
      */
     virtual void respawn();
+    virtual void spawn();
     /**
      * Funkcja odpowiada za włączenie animacji wybuchu czołgu.
      */

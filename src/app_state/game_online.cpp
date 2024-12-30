@@ -609,36 +609,13 @@ void GameOnline::checkConnect()
 
 void GameOnline::ClientUpdate(Uint32 dt)
 {
-    // ấn định mục tiêu của đối thủ
-    int min_metric; // 2 * 26 * 16
-    int metric;
-    SDL_Point target;
-    for (auto enemy : m_enemies)
-    {
-        min_metric = 832;
-        if (enemy->type == ST_TANK_A || enemy->type == ST_TANK_D)
-            for (auto player : m_players)
-            {
-                metric = fabs(player->dest_rect.x - enemy->dest_rect.x) + fabs(player->dest_rect.y - enemy->dest_rect.y);
-                if (metric < min_metric)
-                {
-                    min_metric = metric;
-                    target = {player->dest_rect.x + player->dest_rect.w / 2, player->dest_rect.y + player->dest_rect.h / 2};
-                }
-            }
-        metric = fabs(m_eagle->dest_rect.x - enemy->dest_rect.x) + fabs(m_eagle->dest_rect.y - enemy->dest_rect.y);
-        if (metric < min_metric)
-        {
-            min_metric = metric;
-            target = {m_eagle->dest_rect.x + m_eagle->dest_rect.w / 2, m_eagle->dest_rect.y + m_eagle->dest_rect.h / 2};
-        }
-
-        enemy->target_position = target;
-    }
-
     // Cập nhật tất cả các đối tượng
     for (auto enemy : m_enemies)
+    {
+        enemy->spawn();
         enemy->updateOnline(dt);
+    }
+        
 
     for (auto player : m_players)
     {
@@ -850,9 +827,4 @@ void GameOnline::update(Uint32 dt)
         HandleClientData();
         ClientUpdate(dt);
     }
-}
-
-void GameOnline::draw()
-{
-    Game::draw();
 }

@@ -25,6 +25,7 @@ public:
      * Funkcja rysująca bonus.
      */
     void draw();
+    void drawOnline(); 
     /**
      * Funkcja uaktualniająca animacje bonusu. Pozwolenie na usunięcie po odpowiednim czasie.
      * Zwiększenie częstotliwości migania jeżeli bonus ma niedługo zostać usunięty.

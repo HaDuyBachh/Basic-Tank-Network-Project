@@ -376,3 +376,9 @@ void Tank::respawn()
     collision_rect.h = 0;
     collision_rect.w = 0;
 }
+
+void Tank::spawn()
+{
+    m_sprite = Engine::getEngine().getSpriteConfig()->getSpriteData(ST_CREATE);
+    update(0);
+}

@@ -83,7 +83,6 @@ public:
     void HandleClientData();
     void HostUpdate(Uint32 dt);
     void ClientUpdate(Uint32 dt);
-    void draw();
 
     GameSnapshot captureGameState();
     std::string GameStateSendData();
