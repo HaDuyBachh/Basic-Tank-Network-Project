@@ -374,6 +374,8 @@ void GameOnline::RecvGameState(const std::string& data) {
                 if(values[5] == "1") enemy->setFlag(TSF_DESTROYED);
                 if(values[6] == "1") enemy->setFlag(TSF_BONUS);
 
+                enemy->forceActiveState();
+
                 // Parse bullets count
                 semi_pos = bullets_data.find(';');
                 if(semi_pos != std::string::npos) {
@@ -610,12 +612,11 @@ void GameOnline::checkConnect()
 void GameOnline::ClientUpdate(Uint32 dt)
 {
     // Cập nhật tất cả các đối tượng
-    for (auto enemy : m_enemies)
-    {
-        enemy->spawn();
+    for(auto enemy : m_enemies) {
+        // Force enemy to active state for replay
+        enemy->spawnAt(enemy->pos_x, enemy->pos_y, enemy->direction, true);
         enemy->updateOnline(dt);
-    }
-        
+    }   
 
     for (auto player : m_players)
     {

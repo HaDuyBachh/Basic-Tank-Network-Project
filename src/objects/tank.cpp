@@ -368,17 +368,11 @@ void Tank::respawn()
     clearFlag(TSF_BOAT);
     m_flags = TSF_LIFE;
     update(0);
-    m_flags = TSF_CREATE; //resetujemy wszystkie inne flagi
+    m_flags = TSF_CREATE; //đặt lại tất cả các cờ khác
 
-    //ustawienie porostokąta kolizji po wywołaniu update
+    //thiết lập hình chữ nhật va chạm sau khi gọi cập nhật
     collision_rect.x = 0;
     collision_rect.y = 0;
     collision_rect.h = 0;
     collision_rect.w = 0;
-}
-
-void Tank::spawn()
-{
-    m_sprite = Engine::getEngine().getSpriteConfig()->getSpriteData(ST_CREATE);
-    update(0);
 }

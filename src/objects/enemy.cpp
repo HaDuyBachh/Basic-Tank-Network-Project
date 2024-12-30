@@ -60,6 +60,33 @@ Enemy::Enemy(double x, double y, SpriteType type)
     respawn();
 }
 
+
+void Enemy::spawnAt(double x, double y, Direction dir, bool isActive) {
+    pos_x = x;
+    pos_y = y;
+    direction = dir;
+    
+    if(isActive) {
+        // Skip spawn animation, directly set active state
+        m_sprite = Engine::getEngine().getSpriteConfig()->getSpriteData(type);
+        clearFlag(TSF_CREATE);
+        setFlag(TSF_LIFE);
+        m_current_frame = 0;
+    } else {
+        // Normal spawn with animation
+        respawn();
+    }
+}
+
+void Enemy::forceActiveState() {
+    if(!testFlag(TSF_LIFE)) {
+        m_sprite = Engine::getEngine().getSpriteConfig()->getSpriteData(type);
+        clearFlag(TSF_CREATE);
+        setFlag(TSF_LIFE);
+        m_current_frame = 0;
+    }
+}
+
 void Enemy::draw()
 {
     if (to_erase)
@@ -87,8 +114,11 @@ void Enemy::updateOnline(Uint32 dt)
 {
     if (to_erase)
         return;
+
+    // Update base state
     Tank::update(dt);
 
+    // Update animation frame
     if (testFlag(TSF_LIFE))
     {
         if (testFlag(TSF_BONUS))
@@ -97,7 +127,14 @@ void Enemy::updateOnline(Uint32 dt)
             src_rect = moveRect(m_sprite->rect, (testFlag(TSF_ON_ICE) ? new_direction : direction) + (lives_count - 1) * 4, m_current_frame);
     }
     else
+    {
         src_rect = moveRect(m_sprite->rect, 0, m_current_frame);
+
+        m_sprite = Engine::getEngine().getSpriteConfig()->getSpriteData(type);
+        clearFlag(TSF_CREATE);
+        setFlag(TSF_LIFE);
+        m_current_frame = 0;
+    }
 
     if (testFlag(TSF_FROZEN))
         return;
