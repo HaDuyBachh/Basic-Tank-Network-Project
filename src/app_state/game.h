@@ -69,6 +69,8 @@ public:
      */
     AppState *nextState();
 
+    void updateCollider(Uint32 dt);
+
     // ... [Các getter và setter giữ nguyên không đổi]
 
 protected:

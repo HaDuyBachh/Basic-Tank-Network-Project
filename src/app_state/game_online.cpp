@@ -1,15 +1,24 @@
 #include "game_online.h"
 #include "../objects/eagle.h"
 #include "../appconfig.h"
+#include "menu.h"
 #include <sstream>
+#include <fstream>
 
-GameOnline::GameOnline(const std::string& room_code, bool is_host, 
-                      const std::vector<std::string>& players)
-    : Game(), 
-    m_room_code(room_code),
-    m_is_host(is_host),
-    m_last_sync_time(0) {
-    
+#include <SDL2/SDL.h>
+#include <stdlib.h>
+#include <ctime>
+#include <fstream>
+#include <algorithm>
+#include <iostream>
+#include <cmath>
+
+GameOnline::GameOnline(const std::string &room_code, bool is_host,
+                       const std::vector<std::string> &players)
+{
+    m_room_code = room_code;
+    m_is_host = is_host;
+    m_last_sync_time = 0;
     m_level_columns_count = 0;
     m_level_rows_count = 0;
     m_current_level = 0;
@@ -22,10 +31,10 @@ GameOnline::GameOnline(const std::string& room_code, bool is_host,
     m_protect_eagle_time = 0;
     m_enemy_respown_position = 0;
 
-        WSADATA wsaData;
+    WSADATA wsaData;
     WSAStartup(MAKEWORD(2, 2), &wsaData);
     m_sync_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    
+
     m_server_addr.sin_family = AF_INET;
     m_server_addr.sin_port = htons(8890);
     m_server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
@@ -33,16 +42,19 @@ GameOnline::GameOnline(const std::string& room_code, bool is_host,
     m_last_sync_time = SDL_GetTicks();
 
     // Tạo players online
-    if (m_is_host) {
-        PlayerOnline* p1 = new PlayerOnline(AppConfig::player_starting_point.at(0).x,
-                                          AppConfig::player_starting_point.at(0).y,
-                                          ST_PLAYER_1, true, room_code);
+    if (m_is_host)
+    {
+        PlayerOnline *p1 = new PlayerOnline(AppConfig::player_starting_point.at(0).x,
+                                            AppConfig::player_starting_point.at(0).y,
+                                            ST_PLAYER_1, true, room_code);
         p1->player_keys = AppConfig::player_keys.at(0);
         m_players.push_back(p1);
-    } else {
-        PlayerOnline* p2 = new PlayerOnline(AppConfig::player_starting_point.at(1).x,
-                                          AppConfig::player_starting_point.at(1).y,
-                                          ST_PLAYER_2, false, room_code);
+    }
+    else
+    {
+        PlayerOnline *p2 = new PlayerOnline(AppConfig::player_starting_point.at(1).x,
+                                            AppConfig::player_starting_point.at(1).y,
+                                            ST_PLAYER_2, false, room_code);
         p2->player_keys = AppConfig::player_keys.at(1);
         m_players.push_back(p2);
     }
@@ -50,217 +62,119 @@ GameOnline::GameOnline(const std::string& room_code, bool is_host,
     nextLevel();
 }
 
-GameOnline::~GameOnline() {
+GameOnline::~GameOnline()
+{
     closesocket(m_sync_socket);
     WSACleanup();
 }
 
-void GameOnline::syncGameState() {
-    // Cập nhật game state
-    m_game_state.enemies.clear();
-
-    for (auto player : m_players) {
-        PlayerOnline* p = dynamic_cast<PlayerOnline*>(player);
-        if (p) {
-            PlayerData player_data;
-            player_data.pos_x = p->pos_x;
-            player_data.pos_y = p->pos_y;
-            player_data.direction = p->direction;
-            player_data.is_firing = p->isFiring();
-            player_data.is_destroyed = p->testFlag(TSF_DESTROYED);
-            m_game_state.players.push_back(player_data);
-        }
-    }
-
-    for (auto enemy : m_enemies) {
-        GameState::EnemyData enemy_data;
-        enemy_data.pos_x = enemy->pos_x;
-        enemy_data.pos_y = enemy->pos_y;
-        enemy_data.direction = enemy->direction;
-        enemy_data.type = enemy->type;
-        enemy_data.lives_count = enemy->lives_count;
-        enemy_data.is_destroyed = enemy->testFlag(TSF_DESTROYED);
-        m_game_state.enemies.push_back(enemy_data);
-    }
-
-    m_game_state.bonuses.clear();
-    for (auto bonus : m_bonuses) {
-        GameState::BonusData bonus_data;
-        bonus_data.pos_x = bonus->pos_x;
-        bonus_data.pos_y = bonus->pos_y;
-        bonus_data.type = bonus->type;
-        bonus_data.is_active = !bonus->to_erase;
-        m_game_state.bonuses.push_back(bonus_data);
-    }
-
-    // m_game_state.eagle_destroyed = m_eagle->hasFlag(TSF_DESTROYED);
-    m_game_state.current_level = m_current_level;
-    m_game_state.enemy_count = m_enemy_to_kill;
-
-    // Đóng gói và gửi game state
-    std::stringstream ss;
-    ss << "GAMESTATE:" << m_room_code << ":";
+void GameOnline::checkConnect() {
+    WSADATA wsaData;
+    WSAStartup(MAKEWORD(2, 2), &wsaData);
     
-    // Đóng gói enemies
-    ss << m_game_state.enemies.size() << ";";
-    for (const auto& enemy : m_game_state.enemies) {
-        ss << enemy.pos_x << "," << enemy.pos_y << "," 
-           << enemy.direction << "," << enemy.type << ","
-           << enemy.lives_count << "," << enemy.is_destroyed << ";";
-    }
-    
-    // Đóng gói bonuses
-    ss << m_game_state.bonuses.size() << ";";
-    for (const auto& bonus : m_game_state.bonuses) {
-        ss << bonus.pos_x << "," << bonus.pos_y << ","
-           << bonus.type << "," << bonus.is_active << ";";
-    }
-    
-    // Đóng gói thông tin khác
-    ss << m_game_state.eagle_destroyed << ";"
-       << m_game_state.current_level << ";"
-       << m_game_state.enemy_count;
+    SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    struct sockaddr_in server_addr;
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(8888);
+    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
-    std::string data = ss.str();
-    sendto(m_sync_socket, data.c_str(), data.length(), 0,
-           (struct sockaddr*)&m_server_addr, sizeof(m_server_addr));
+    if (connect(sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) == 0) {
+        // std::string request = "game_data: host is " + (this->m_is_host ? "true" : "false");
+        
+        std::stringstream ss;
+        ss << "game_data:" << m_room_code << ":" 
+           << (m_is_host ? "host" : "client") << ":"
+           << m_players.size();
+        std::string request = ss.str();
+        
+        send(sock, request.c_str(), request.length(), 0);
+
+        char buffer[1024] = {0};
+        recv(sock, buffer, sizeof(buffer), 0);
+        std::string response(buffer);
+    }
+
+    closesocket(sock);
+    WSACleanup();
 }
 
-void GameOnline::handleGameSync(const std::string& data) {
-    // Kiểm tra và parse dữ liệu
-    if (data.find("GAMESTATE:" + m_room_code + ":") != 0) {
+void GameOnline::update(Uint32 dt)
+{
+    if (dt > 40)
         return;
+
+    if (m_level_start_screen)
+    {
+        if (m_level_start_time > AppConfig::level_start_time)
+            m_level_start_screen = false;
+
+        m_level_start_time += dt;
     }
+    else
+    if (m_is_host)
+    {
+        if (m_pause)
+            return;
 
-    std::stringstream ss(data.substr(data.find(":") + m_room_code.length() + 2));
-    std::string item;
+        updateCollider(dt);
 
-    std::getline(ss, item, ';');
-    int player_count = std::stoi(item);
-    
-    m_players.clear();
-    for (int i = 0; i < player_count; i++) {
-        std::getline(ss, item, ';');
-        std::stringstream player_ss(item);
-        std::string value;
-        
-        std::getline(player_ss, value, ',');
-        double pos_x = std::stod(value);
-        std::getline(player_ss, value, ',');
-        double pos_y = std::stod(value);
-        std::getline(player_ss, value, ',');
-        int direction = std::stoi(value);
-        std::getline(player_ss, value, ',');
-        bool is_firing = std::stoi(value);
-        std::getline(player_ss, value, ',');
-        bool is_destroyed = std::stoi(value);
+        // ấn định mục tiêu của đối thủ
+        int min_metric; // 2 * 26 * 16
+        int metric;
+        SDL_Point target;
+        for (auto enemy : m_enemies)
+        {
+            min_metric = 832;
+            if (enemy->type == ST_TANK_A || enemy->type == ST_TANK_D)
+                for (auto player : m_players)
+                {
+                    metric = fabs(player->dest_rect.x - enemy->dest_rect.x) + fabs(player->dest_rect.y - enemy->dest_rect.y);
+                    if (metric < min_metric)
+                    {
+                        min_metric = metric;
+                        target = {player->dest_rect.x + player->dest_rect.w / 2, player->dest_rect.y + player->dest_rect.h / 2};
+                    }
+                }
+            metric = fabs(m_eagle->dest_rect.x - enemy->dest_rect.x) + fabs(m_eagle->dest_rect.y - enemy->dest_rect.y);
+            if (metric < min_metric)
+            {
+                min_metric = metric;
+                target = {m_eagle->dest_rect.x + m_eagle->dest_rect.w / 2, m_eagle->dest_rect.y + m_eagle->dest_rect.h / 2};
+            }
 
-        PlayerOnline* player = new PlayerOnline(pos_x, pos_y, ST_PLAYER_1, m_is_host, m_room_code);
-        player->direction = static_cast<Direction>(direction);
-        if (is_firing) {
-            player->fire();
+            enemy->target_position = target;
         }
-        if (is_destroyed) {
-            player->destroy();
-        }
-        m_players.push_back(player);
+
+        // Cập nhật tất cả các đối tượng
+        for (auto enemy : m_enemies)
+            enemy->update(dt);
+        for (auto player : m_players)
+            player->update(dt);
+        for (auto bonus : m_bonuses)
+            bonus->update(dt);
+        m_eagle->update(dt);
+
+        for (auto row : m_level)
+            for (auto item : row)
+                if (item != nullptr)
+                    item->update(dt);
+
+        for (auto bush : m_bushes)
+            bush->update(dt);
+
+        // loại bỏ các phần tử không cần thiết
+        m_enemies.erase(std::remove_if(m_enemies.begin(), m_enemies.end(), [](Enemy *e)
+                                       {if(e->to_erase) {delete e; return true;} return false; }),
+                        m_enemies.end());
+        m_players.erase(std::remove_if(m_players.begin(), m_players.end(), [this](Player *p)
+                                       {if(p->to_erase) {m_killed_players.push_back(p); return true;} return false; }),
+                        m_players.end());
+        m_bonuses.erase(std::remove_if(m_bonuses.begin(), m_bonuses.end(), [](Bonus *b)
+                                       {if(b->to_erase) {delete b; return true;} return false; }),
+                        m_bonuses.end());
+        m_bushes.erase(std::remove_if(m_bushes.begin(), m_bushes.end(), [](Object *b)
+                                      {if(b->to_erase) {delete b; return true;} return false; }),
+                       m_bushes.end());
     }
-    
-    // Parse enemies
-    std::getline(ss, item, ';');
-    int enemy_count = std::stoi(item);
-    
-    m_enemies.clear();
-    for (int i = 0; i < enemy_count; i++) {
-        std::getline(ss, item, ';');
-        std::stringstream enemy_ss(item);
-        std::string value;
-        
-        std::getline(enemy_ss, value, ',');
-        double pos_x = std::stod(value);
-        std::getline(enemy_ss, value, ',');
-        double pos_y = std::stod(value);
-        std::getline(enemy_ss, value, ',');
-        int direction = std::stoi(value);
-        std::getline(enemy_ss, value, ',');
-        SpriteType type = static_cast<SpriteType>(std::stoi(value));
-        std::getline(enemy_ss, value, ',');
-        int lives = std::stoi(value);
-        std::getline(enemy_ss, value, ',');
-        bool is_destroyed = std::stoi(value);
-
-        Enemy* enemy = new Enemy(pos_x, pos_y, type);
-        enemy->direction = static_cast<Direction>(direction);
-        enemy->lives_count = lives;
-        if (is_destroyed) {
-            enemy->setFlag(TSF_DESTROYED);
-        }
-        m_enemies.push_back(enemy);
-    }
-
-    // Parse bonuses
-    std::getline(ss, item, ';');
-    int bonus_count = std::stoi(item);
-    
-    m_bonuses.clear();
-    for (int i = 0; i < bonus_count; i++) {
-        std::getline(ss, item, ';');
-        std::stringstream bonus_ss(item);
-        std::string value;
-        
-        std::getline(bonus_ss, value, ',');
-        double pos_x = std::stod(value);
-        std::getline(bonus_ss, value, ',');
-        double pos_y = std::stod(value);
-        std::getline(bonus_ss, value, ',');
-        SpriteType type = static_cast<SpriteType>(std::stoi(value));
-        std::getline(bonus_ss, value, ',');
-        bool is_active = std::stoi(value);
-
-        Bonus* bonus = new Bonus(pos_x, pos_y, type);
-        bonus->to_erase = !is_active;
-        m_bonuses.push_back(bonus);
-    }
-
-    // // Parse eagle state
-    // std::getline(ss, item, ';');
-    // bool eagle_destroyed = std::stoi(item);
-    // if (eagle_destroyed && !m_eagle->hasFlag(TSF_DESTROYED)) {
-    //     m_eagle->destroy();
-    // }
-
-    // Parse level info
-    std::getline(ss, item, ';');
-    m_current_level = std::stoi(item);
-    std::getline(ss, item, ';');
-    m_enemy_to_kill = std::stoi(item);
+    checkConnect();
 }
-
-void GameOnline::update(Uint32 dt) {
-    Game::update(dt);
-    
-    Uint32 current_time = SDL_GetTicks();
-    
-    // Host đồng bộ game state định kỳ
-    if (m_is_host && current_time - m_last_sync_time >= SYNC_INTERVAL) {
-        syncGameState();
-        m_last_sync_time = current_time;
-    }
-    
-    // Client nhận game state
-    if (!m_is_host) {
-        char buffer[4096];
-        struct sockaddr_in from_addr;
-        int from_len = sizeof(from_addr);
-        
-        int recv_len = recvfrom(m_sync_socket, buffer, sizeof(buffer), 0,
-                               (struct sockaddr*)&from_addr, &from_len);
-        
-        if (recv_len > 0) {
-            buffer[recv_len] = '\0';
-            std::string data(buffer);
-            handleGameSync(data);
-        }
-    }    
-}
-

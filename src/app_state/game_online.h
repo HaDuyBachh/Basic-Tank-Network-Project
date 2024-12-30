@@ -39,6 +39,8 @@ public:
     
     void update(Uint32 dt) override;
 
+    void checkConnect();
+
 protected:
     void syncGameState();
     void handleGameSync(const std::string& data);

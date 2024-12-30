@@ -330,8 +330,7 @@ AppState* RoomScene::nextState() {
         return new Menu();
     }
     if (m_room_joined && m_finished) {
-        std:cout<<"dang chay duoc"<<m_current_room_code<<'\n';
-        return new GameOnline(m_current_room_code, m_is_host ? 1 : 2, m_players_in_room);
+        return new GameOnline(m_current_room_code, m_is_host, m_players_in_room);
 
     }
     return nullptr;
