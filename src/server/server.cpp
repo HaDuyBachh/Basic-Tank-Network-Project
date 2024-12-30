@@ -223,6 +223,23 @@ std::string handleStartGame(const std::string &room_code)
     return "OK";
 }
 
+std::string handleCheckGame(const std::string &room_code)
+{
+    pthread_mutex_lock(&rooms_mutex);
+
+    if (rooms.find(room_code) == rooms.end())
+    {
+        pthread_mutex_unlock(&rooms_mutex);
+        return "ROOM_NOT_FOUND";
+    }
+
+    auto &room = rooms[room_code];
+    std::string response = room.is_playing ? "STARTED" : "NOT_STARTED";
+
+    pthread_mutex_unlock(&rooms_mutex);
+    return response;
+}
+
 void *handleGameSync(void *arg)
 {
     SOCKET sync_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -399,12 +416,9 @@ std::string handleLeaveRoom(const std::string &username, const std::string &room
 {
     pthread_mutex_lock(&rooms_mutex);
 
-    printf("Dang Roi Phong");
-
     if (rooms.find(room_code) == rooms.end())
     {
         pthread_mutex_unlock(&rooms_mutex);
-        printf("ROOM_NOT_FOUND");
         return "ROOM_NOT_FOUND";
     }
 
@@ -427,7 +441,6 @@ std::string handleLeaveRoom(const std::string &username, const std::string &room
             rooms.erase(room_code);
 
             pthread_mutex_unlock(&rooms_mutex);
-            printf("ROOM_DELETED");
             return "ROOM_DELETED";
         }
         else
@@ -659,8 +672,15 @@ void *handleTCPClient(void *arg)
     // Thêm case xử lý trong handleTCPClient
     else if (request.find("start_game:") == 0)
     {
+        printf("is start_game\n");
         std::string room_code = request.substr(11); // Bỏ "start_game:"
         response = handleStartGame(room_code);
+    }
+    else if (request.find("check_game:") == 0)
+    {
+        printf("is check_game\n");
+        std::string room_code = request.substr(11); // Bỏ "check_game:"
+        response = handleCheckGame(room_code);
     }
 
     send(client_socket, response.c_str(), response.length(), 0);
