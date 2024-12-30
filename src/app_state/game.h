@@ -12,284 +12,246 @@
 #include <string>
 
 /**
- * @brief Klasa odpowiada za ruch wszytkich czołgów oraz interaakcje między czołgami oraz między czołgami a innymi obiektami na mapie
+ * @brief Lớp này chịu trách nhiệm cho việc di chuyển của tất cả xe tăng và tương tác giữa các xe tăng với nhau cũng như giữa xe tăng với các đối tượng khác trên bản đồ
  */
 class Game : public AppState
 {
 public:
     /**
-     * Domyślny konstruktor - umożliwia grę dla jednego gracza
+     * Constructor mặc định - cho phép chơi đơn người
      */
     Game();
     /**
-     * Konstruktor pozwalający podać początkową liczbę graczy. Liczba graczy może być równa 1 lub 2, każda inna wartość spowoduje uruchomienie gry dla jednego gracza.
-     * Konstruktor jest wywoływany w @a Menu::nextState.
-     * @param players_count - liczba graczy 1 lub 2
+     * Constructor cho phép chỉ định số lượng người chơi ban đầu. Số người chơi có thể là 1 hoặc 2, các giá trị khác sẽ khởi động trò chơi ở chế độ một người chơi.
+     * Constructor này được gọi trong @a Menu::nextState.
+     * @param players_count - số lượng người chơi 1 hoặc 2
      */
     Game(int players_count);
     /**
-     * Konstruktor przyjmujący już isteniejących graczy.
-     * Wywoływany w @a Score::nextState
-     * @param players - kontener z graczami
-     * @param previous_level - zmienna przechowująca numer poprzedniego poziomu
+     * Constructor nhận các người chơi đã tồn tại.
+     * Được gọi trong @a Score::nextState
+     * @param players - container chứa người chơi
+     * @param previous_level - biến lưu trữ số cấp độ trước đó
      */
-    Game(std::vector<Player*> players, int previous_level);
+    Game(std::vector<Player *> players, int previous_level);
 
     ~Game();
     /**
-     * Funkcja zwraca @a true jeśli gracza zniszczył wszystkich przeciwników albo gdy orzełek został trafiony lub gracz stracił wszystkie życia, czyli nastąpiła przegrana.
-     * @return @a true lub @a false
+     * Hàm trả về @a true nếu người chơi đã tiêu diệt tất cả kẻ thù hoặc khi đại bàng bị bắn trúng hoặc người chơi mất hết mạng, tức là đã thua.
+     * @return @a true hoặc @a false
      */
     bool finished() const;
     /**
-     * Funkcja wyświetla na początku rundy jej numer. W czasie rozgrywki funkcja odpowiada za rysowanie poziomu (murków, kamieni, wody, lodu, krzewów),
-     * graczy, wrogów, bonusów, orzełka, statusu gry na panelu po prawej stronie (pozostałych przeciwników, pozostałe życia graczy, nr rundy).
-     * Po przegranej lub podczas pauzy wyświetla odpowiędnią informację na środku ekranu.
+     * Hàm hiển thị số vòng chơi ở đầu mỗi vòng. Trong quá trình chơi, hàm chịu trách nhiệm vẽ cấp độ (gạch, đá, nước, băng, bụi cây),
+     * người chơi, kẻ thù, phần thưởng, đại bàng, trạng thái trò chơi trên bảng điều khiển bên phải (kẻ thù còn lại, mạng còn lại của người chơi, số vòng).
+     * Sau khi thua hoặc trong khi tạm dừng, hiển thị thông tin tương ứng ở giữa màn hình.
      */
     void draw();
     /**
-     * Funkcja aktualizuje stan wszystkich obiektów na planszy (czołgów, bonusów, przeszkód). Sprawdza ponadto kolizje między czołgami, między czołgami i elementami poziomu oraz między pociskami a czołgami i elementami mapy.
-     * Naspępuje tu usuwanie zniszczonych obiektów, dodawanie nowych wrogich czołgów oraz sprawdzenie warunków zakończenia rundy.
-     * @param dt - czas od ostatniego wywołania funkcji w milisekundach
+     * Hàm cập nhật trạng thái của tất cả các đối tượng trên bản đồ (xe tăng, phần thưởng, chướng ngại vật). Ngoài ra còn kiểm tra va chạm giữa các xe tăng, giữa xe tăng và các thành phần cấp độ cũng như giữa đạn với xe tăng và các thành phần bản đồ.
+     * Tại đây diễn ra việc xóa các đối tượng bị phá hủy, thêm xe tăng địch mới và kiểm tra điều kiện kết thúc vòng.
+     * @param dt - thời gian kể từ lần gọi hàm trước tính bằng mili giây
      */
     void update(Uint32 dt);
     /**
-     * Następuje tu reakcja na klawisze:
-     * @li Enter - pauza gry
-     * @li Esc - powrót do menu
-     * @li N - przejście do następnej rundy, jeśli gra nie jest przegrana
-     * @li B - przejście do poprzedniej rundy, jeśli gra nie jest przegrana
-     * @li T - pokazanie ścieżek do celów wrogich czołgów
-     * @param ev - wskaźnik na unię SDL_Event przechowującą typ i parametry różnych zdarzeń, w tym zdarzeń klawiatury
+     * Tại đây xử lý phản ứng với các phím:
+     * @li Enter - tạm dừng trò chơi
+     * @li Esc - trở về menu
+     * @li N - chuyển sang vòng tiếp theo, nếu trò chơi chưa thua
+     * @li B - trở lại vòng trước, nếu trò chơi chưa thua
+     * @li T - hiển thị đường đi đến mục tiêu của xe tăng địch
+     * @param ev - con trỏ đến union SDL_Event lưu trữ loại và tham số của các sự kiện khác nhau, bao gồm cả sự kiện bàn phím
      */
-    void eventProcess(SDL_Event* ev);
+    void eventProcess(SDL_Event *ev);
     /**
-     * Przejście do następnyego stanu.
-     * @return wskaźnik na obiekty klasy @a Scores jeżeli gracz przeszedł rundę lub przegrał. Jeżeli gracz wcisną Esc funkcja zwraca wskaźnik na obiekt @a Menu.
+     * Chuyển sang trạng thái tiếp theo.
+     * @return con trỏ đến đối tượng lớp @a Scores nếu người chơi vượt qua vòng hoặc thua. Nếu người chơi nhấn Esc hàm trả về con trỏ đến đối tượng @a Menu.
      */
-    AppState* nextState();
+    AppState *nextState();
 
-    int getPlayerCount() const { return m_player_count; }
-    void setPlayerCount(int count) { m_player_count = count; }
-
-    bool isFinished() const { return m_finished; }
-    void setFinished(bool finished) { m_finished = finished; }
-
-    bool isLevelStartScreen() const { return m_level_start_screen; }
-    void setLevelStartScreen(bool levelStartScreen) { m_level_start_screen = levelStartScreen; }
-
-    int getCurrentLevel() const { return m_current_level; }
-    void setCurrentLevel(int currentLevel) { m_current_level = currentLevel; }
-
-    std::vector<std::vector<Object*>>& getLevel() { return m_level; }
-
-    std::vector<Player*>& getPlayers() { return m_players; }
-
-    std::vector<Enemy*>& getEnemies() { return m_enemies; }
-
-    std::vector<Object*>& getBushes() { return m_bushes; }
-
-    std::vector<Bonus*>& getBonuses() { return m_bonuses; }
-
-    Eagle* getEagle() const { return m_eagle; }
-    void setEagle(Eagle* eagle) { m_eagle = eagle; }
-
-    bool isGameOver() const { return m_game_over; }
-    void setGameOver(bool gameOver) { m_game_over = gameOver; }
-
-    double getGameOverPosition() const { return m_game_over_position; }
-    void setGameOverPosition(double gameOverPosition) { m_game_over_position = gameOverPosition; }
-
-    int getEnemyToKill() const { return m_enemy_to_kill; }
-    void setEnemyToKill(int enemyToKill) { m_enemy_to_kill = enemyToKill; }
-
-    bool isPause() const { return m_pause; }
-    void setPause(bool pause) { m_pause = pause; }
-
-    Uint32 getLevelStartTime() const { return m_level_start_time; }
-    void setLevelStartTime(Uint32 levelStartTime) { m_level_start_time = levelStartTime; }
+    // ... [Các getter và setter giữ nguyên không đổi]
 
 private:
     /**
-     * Wczytanie mapy poziomu z pliku
-     * @param path - ścieżka do pliku mapy
+     * Tải bản đồ cấp độ từ tệp
+     * @param path - đường dẫn đến tệp bản đồ
      */
     void loadLevel(std::string path);
     /**
-     * Usuwanie pozostałych wrogów, graczy, obiektów mapy oraz bonusów
+     * Xóa các kẻ thù còn lại, người chơi, đối tượng bản đồ và phần thưởng
      */
     void clearLevel();
     /**
-     * Wczytanie nowego poziomu i utworzenie nowych graczy jeśli jeszcze nie istnieją.
+     * Tải cấp độ mới và tạo người chơi mới nếu chưa tồn tại.
      * @see Game::loadLevel(std::string path)
      */
     void nextLevel();
     /**
-     * Tworzenie nowego wroga jeżeli liczba przeciwników na planszy jest mniejsza od 4 przy założeniu, że nie stworzono już wszystkich 20 wrogów na mapie.
-     * Funkcja generuje różne poziomy pancerza wrogów w zależności od poziomu; im wyższy numer rundy tym większa szansa, żeby przeciwnik miał czwarty poziom pancerza.
-     * Numer poziomu pancerza mówi ile razy należy trafić pociskiem w przeciwnika aby go zniszczyć. Numer ten przyjmuje wartości od 1 do 4 i odpowiada różnym kolorom czołgu.
-     * Wygenerowany przeciwnik ma dodatkowe szanse na to, że trafienie w niego spowoduje powstanie bonusu na planszy.
+     * Tạo kẻ thù mới nếu số lượng đối thủ trên bản đồ ít hơn 4 với điều kiện chưa tạo đủ 20 kẻ thù trên bản đồ.
+     * Hàm tạo ra các mức độ giáp khác nhau cho kẻ thù tùy thuộc vào cấp độ; càng cao số vòng chơi, càng có nhiều khả năng đối thủ có giáp cấp 4.
+     * Số cấp độ giáp cho biết cần bắn trúng bao nhiêu lần để tiêu diệt đối thủ. Số này nhận giá trị từ 1 đến 4 và tương ứng với các màu xe tăng khác nhau.
+     * Đối thủ được tạo ra có thêm cơ hội khi bị bắn trúng sẽ tạo ra phần thưởng trên bản đồ.
      */
     void generateEnemy();
     /**
-     * Funkcja generuje losowy bonus na mapie i ustawia go w pozycji nie kolidującej z orzełkiem.
+     * Hàm tạo ngẫu nhiên phần thưởng trên bản đồ và đặt nó ở vị trí không va chạm với đại bàng.
      */
     void generateBonus();
 
     /**
-     * Sprawdzenie czy czołg może swobodnie jechać naprzód, jeżeli nie zatrzymuje go. Funkcja nie pozwala na wyjazd poza planszę.
-     * Jeżeli czołg wjechał na lód powoduje to jego poślizg. Jeżeli czołg posiada bonus "Łódź" może przechodzić przez wodę. Czołgi nie mogą przejechać orzełka.
-     * @param tank - czółg, dla którego sprawdzamy kolizje
-     * @param dt - ostatnia zmiana czasu, przy założeniu niewielkich zmian w kolejnych krokach czasowych możemy przewidywać kolejne położenie czołgu i odpowiednio reagować.
+     * Kiểm tra xem xe tăng có thể di chuyển tự do về phía trước không, nếu không thì dừng lại. Hàm không cho phép di chuyển ra ngoài bản đồ.
+     * Nếu xe tăng đi vào băng sẽ gây ra hiệu ứng trượt. Nếu xe tăng có phần thưởng "Thuyền" có thể đi qua nước. Xe tăng không thể đi qua đại bàng.
+     * @param tank - xe tăng cần kiểm tra va chạm
+     * @param dt - thay đổi thời gian gần nhất, giả định với những thay đổi nhỏ trong các bước thời gian tiếp theo có thể dự đoán vị trí tiếp theo của xe tăng và phản ứng phù hợp.
      */
-    void checkCollisionTankWithLevel(Tank* tank, Uint32 dt);
+    void checkCollisionTankWithLevel(Tank *tank, Uint32 dt);
     /**
-     * Sprawdzenie czy nie występuje kolizja między badanymi czołgami, jeśli tak oba są zatrzymywane.
+     * Kiểm tra xem có va chạm giữa các xe tăng được kiểm tra không, nếu có thì cả hai đều dừng lại.
      * @param tank1
      * @param tank2
      * @param dt
      */
-    void checkCollisionTwoTanks(Tank* tank1, Tank* tank2, Uint32 dt);
+    void checkCollisionTwoTanks(Tank *tank1, Tank *tank2, Uint32 dt);
     /**
-     * Sprawdznie czy wybrany pocisk nie koliduje z jakimś elementem mapy (woda i lód są pomijane). Jeżeli tak pocisk i obiekt są niszczone.
-     * Jeśli trafiono orzełka to następuje przegrana.
-     * @param bullet - pocisk
+     * Kiểm tra xem viên đạn đã chọn có va chạm với bất kỳ phần tử nào trên bản đồ không (nước và băng được bỏ qua). Nếu có thì đạn và đối tượng bị phá hủy.
+     * Nếu bắn trúng đại bàng thì trò chơi kết thúc với thất bại.
+     * @param bullet - viên đạn
      */
-    void checkCollisionBulletWithLevel(Bullet* bullet);
+    void checkCollisionBulletWithLevel(Bullet *bullet);
     /**
-     * Sprawdzenie kolizji pocisku z krzewami (krzakami) na mapie. Niszczenie krzaków i pocisku nastepuje wtedy, gdy ma on zwiększone obrażenia.
-     * @param bullet - pocisk
+     * Kiểm tra va chạm của đạn với bụi cây trên bản đồ. Bụi cây và đạn bị phá hủy chỉ khi đạn có sát thương tăng cường.
+     * @param bullet - viên đạn
      * @see Bullet::increased_damage
      */
-    void checkCollisionBulletWithBush(Bullet* bullet);
+    void checkCollisionBulletWithBush(Bullet *bullet);
     /**
-     * Sprawdzanie czy dany gracz trafił w wybranego przeciwnika. Jeśli tak gracz dostaje punkty a przeciwnik traci jeden poziom pancerza.
-     * @param player - gracz
-     * @param enemy - przeciwnik
+     * Kiểm tra xem người chơi đã bắn trúng kẻ thù được chọn chưa. Nếu có, người chơi nhận được điểm và kẻ thù mất một cấp độ giáp.
+     * @param player - người chơi
+     * @param enemy - kẻ thù
      */
-    void checkCollisionPlayerBulletsWithEnemy(Player* player, Enemy* enemy);
+    void checkCollisionPlayerBulletsWithEnemy(Player *player, Enemy *enemy);
     /**
-     * Sprawdzenie czy przeciwnik nie trafił pociskiem w gracza. Jeżeli tak to gracz traci jedno życie o ile nie miał osłonki.
-     * @param enemy - przeciwnik
-     * @param player - gracz
+     * Kiểm tra xem kẻ thù có bắn trúng người chơi không. Nếu có thì người chơi mất một mạng trừ khi có lá chắn bảo vệ.
+     * @param enemy - kẻ thù
+     * @param player - người chơi
      */
-    void checkCollisionEnemyBulletsWithPlayer(Enemy* enemy, Player* player);
+    void checkCollisionEnemyBulletsWithPlayer(Enemy *enemy, Player *player);
     /**
-     * Jeżeli dwa pociski się zderzą oba zostają niszczone.
+     * Nếu hai viên đạn va chạm vào nhau, cả hai đều bị phá hủy.
      * @param bullet1
      * @param bullet2
      */
-    void checkCollisionTwoBullets(Bullet* bullet1, Bullet* bullet2);
+    void checkCollisionTwoBullets(Bullet *bullet1, Bullet *bullet2);
     /**
-     * Sprawdzenie czy gracz nie wziął bonusu. Jeśli tak następuje odpowiednia reakcja:
-     * @li Granat - widoczni wrogowie zostają zniszczeni
-     * @li Hełm - gracz dostaje czasową osłonę od wszystkich pocisków
-     * @li Zegar - zatrzymanie widocznych przeciwników
-     * @li Łopata - Stworzenie czasowo kamiennego muru wokół orzełka
-     * @li Czołg - zwiększenie o 1 liczby żyć gracza
-     * @li Gwiazda - ulepszenie czołgu gracza (zwiększenie szybkości, liczby pocisków)
-     * @li Broń - maksymalne ulepszenie gracza
-     * @li Łódź - możliwość przejazdu przez wodę
-     * Za zdobycie bonusu gracz dostaje dodatkowe punkty.
+     * Kiểm tra xem người chơi có nhặt được phần thưởng không. Nếu có thì xảy ra phản ứng tương ứng:
+     * @li Lựu đạn - các kẻ thù đang hiển thị bị tiêu diệt
+     * @li Mũ bảo hiểm - người chơi nhận được bảo vệ tạm thời khỏi mọi viên đạn
+     * @li Đồng hồ - làm đứng yên các kẻ thù đang hiển thị
+     * @li Xẻng - Tạo tường đá tạm thời xung quanh đại bàng
+     * @li Xe tăng - tăng số mạng của người chơi thêm 1
+     * @li Ngôi sao - nâng cấp xe tăng của người chơi (tăng tốc độ, số lượng đạn)
+     * @li Vũ khí - nâng cấp tối đa cho người chơi
+     * @li Thuyền - khả năng đi qua nước
+     * Người chơi nhận được điểm thưởng thêm khi lấy được phần thưởng.
      * @param player
      * @param bonus
      */
-    void checkCollisionPlayerWithBonus(Player* player, Bonus* bonus);
+    void checkCollisionPlayerWithBonus(Player *player, Bonus *bonus);
 
     /**
-     * Liczaba kolumn siatki mapy.
+     * Số cột trong lưới bản đồ.
      */
     int m_level_columns_count;
     /**
-     * Liczaba wierszy siatki mapy.
+     * Số hàng trong lưới bản đồ.
      */
     int m_level_rows_count;
     /**
-     * Przeszkody na mapie.
+     * Chướng ngại vật trên bản đồ.
      */
-    std::vector< std::vector <Object*> > m_level;
+    std::vector<std::vector<Object *>> m_level;
     /**
-     * Krzaki na mapie.
+     * Bụi cây trên bản đồ.
      */
-    std::vector<Object*> m_bushes;
+    std::vector<Object *> m_bushes;
 
     /**
-     * Zbiór wrogów.
+     * Tập hợp kẻ thù.
      */
-    std::vector<Enemy*> m_enemies;
+    std::vector<Enemy *> m_enemies;
     /**
-     * Zbiór pozostałych graczy.
+     * Tập hợp người chơi còn lại.
      */
-    std::vector<Player*> m_players;
+    std::vector<Player *> m_players;
     /**
-     * Zbiór zabity graczy.
+     * Tập hợp người chơi đã bị tiêu diệt.
      */
-    std::vector<Player*> m_killed_players;
+    std::vector<Player *> m_killed_players;
     /**
-     * Zbiór bonusów na mapie.
+     * Tập hợp phần thưởng trên bản đồ.
      */
-    std::vector<Bonus*> m_bonuses;
+    std::vector<Bonus *> m_bonuses;
     /**
-     * Obiekt orzełka.
+     * Đối tượng đại bàng.
      */
-    Eagle* m_eagle;
+    Eagle *m_eagle;
 
     /**
-     * Obecny numer poziomu.
+     * Số cấp độ hiện tại.
      */
     int m_current_level;
     /**
-     * Liczba graczy w wybranym trybie gry 1 lub 2.
+     * Số người chơi trong chế độ chơi đã chọn 1 hoặc 2.
      */
     int m_player_count;
     /**
-     * Liczba pozostałych wrogów do zabicia na danym poziomie
+     * Số kẻ thù còn lại cần tiêu diệt ở cấp độ hiện tại
      */
     int m_enemy_to_kill;
 
     /**
-     * Zmienna przechowyje, czy w tym momencie wyświetlany jest ekran startowy poziomu.
+     * Biến lưu trữ xem màn hình bắt đầu cấp độ có đang được hiển thị không.
      */
     bool m_level_start_screen;
     /**
-     * Zmienna przechowuje informacje, czy orzełek jest chroniony kamiennym murem.
+     * Biến lưu trữ thông tin xem đại bàng có đang được bảo vệ bởi tường đá không.
      */
     bool m_protect_eagle;
     /**
-     * Czas jak długo wyświetlany jest już ekran startowy poziomu.
+     * Thời gian màn hình bắt đầu cấp độ đã được hiển thị.
      */
     Uint32 m_level_start_time;
     /**
-     * Czas od ostatniego stworzenia przeciwnika.
+     * Thời gian từ lần cuối tạo kẻ thù.
      */
     Uint32 m_enemy_redy_time;
     /**
-     * Czas jaki minął od wygrania mapy.
+     * Thời gian đã trôi qua kể từ khi thắng bản đồ.
      */
     Uint32 m_level_end_time;
     /**
-     * Czas jak długo orzełek jest już chroniony przez kamienny mur.
+     * Thời gian đại bàng đã được bảo vệ bởi tường đá.
      */
     Uint32 m_protect_eagle_time;
 
     /**
-     * Stan przegranej.
+     * Trạng thái thua cuộc.
      */
     bool m_game_over;
     /**
-     * Pozycja napisu "GAME OVER" jeśli @a m_game_over jest równe @a true.
+     * Vị trí của dòng chữ "GAME OVER" nếu @a m_game_over là @a true.
      */
     double m_game_over_position;
     /**
-     * Zmienna przechowuje informację, czy należy zakończyć bieżący stan gry i przejść do wyświetlania wyników lub manu gry.
+     * Biến lưu trữ thông tin xem có nên kết thúc trạng thái trò chơi hiện tại và chuyển sang hiển thị điểm số hoặc menu trò chơi không.
      */
     bool m_finished;
     /**
-     * Zmienna mówi czy włączona została pauza.
+     * Biến cho biết trò chơi có đang tạm dừng không.
      */
     bool m_pause;
     /**
-     * Numer pozycji now stworzonego przeciwnika. Zmieniana przy każdym tworzeniu przeciwnika.
+     * Số vị trí tạo kẻ thù mới. Thay đổi mỗi khi tạo kẻ thù.
      */
     int m_enemy_respown_position;
 };

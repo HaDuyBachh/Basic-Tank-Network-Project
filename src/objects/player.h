@@ -4,98 +4,98 @@
 #include "tank.h"
 
 /**
- * @brief Klasa odpowiadająca czołgom graczy.
+ * @brief Một lớp tương ứng với xe tăng của người chơi.
  */
 class Player : public Tank
 {
 public:
 
     /**
-     * @brief Struktura przechowująca klawiszę odpowiadające sterowaniem czołgiem gracza.
+     * @brief Một cấu trúc chứa các phím tương ứng với việc điều khiển xe tăng của người chơi.
      */
     struct PlayerKeys
     {
         PlayerKeys(): up(SDL_SCANCODE_UNKNOWN), down(SDL_SCANCODE_UNKNOWN), left(SDL_SCANCODE_UNKNOWN), right(SDL_SCANCODE_UNKNOWN), fire(SDL_SCANCODE_UNKNOWN) {}
         PlayerKeys(SDL_Scancode u, SDL_Scancode d, SDL_Scancode l, SDL_Scancode r, SDL_Scancode f): up(u), down(d), left(l), right(r), fire(f) {}
         /**
-         * Klawisz odpowiadający jeździe w górę.
+         * Chìa khóa tương ứng với việc lái xe lên.
          */
         SDL_Scancode up;
         /**
-         * Klawisz odpowiadający jeździe w dół.
+         * Phím xuống.
          */
         SDL_Scancode down;
         /**
-         * Klawisz odpowiadający jeździe w lewo.
+         * key tương ứng với việc lái xe sang trái.
          */
         SDL_Scancode left;
         /**
-         * Klawisz odpowiadający jeździe w prawo.
+         * key tương ứng với việc lái xe bên phải.
          */
         SDL_Scancode right;
         /**
-         * Klawisz odpowiadający wystrzałowi pocisku.
+         * key tương ứng với việc bắn tên lửa.
          */
         SDL_Scancode fire;
     };
 
     /**
-     * Tworzenie gracza w pierwszym z położeń graczy.
+     * Tạo người chơi ở vị trí người chơi đầu tiên.
      * @see AppConfig::player_starting_point
      */
     Player();
     /**
-     * Tworzenie czołgu gracza
-     * @param x - pozycja początkowa pozioma
-     * @param y - pozycja początkowa pionowa
-     * @param type - typ gracza
+     * Tạo xe tăng của người chơi
+     * @param x - vị trí bắt đầu hoành độ
+     * @param y - vị trí bắt đầu theo tung độ
+     * @param type - kiểu người chơi
      */
     Player(double x, double y, SpriteType type);
 
 
     /**
-     * Funkcaj odpowiada za zmianę animacji czołgu gracza oraz za sprawdzeni stanu wciśniętych klawiszy i reakcja na te klawisze, które sterują czołgiem gracza.
-     * @param dt - czas od ostatwniego wywołania funkcji, wykorzystywany przy zmianie animacji
+     * Chức năng này chịu trách nhiệm thay đổi hình ảnh động của xe tăng của người chơi và kiểm tra trạng thái của các phím được nhấn cũng như phản ứng với các phím điều khiển xe tăng của người chơi.
+     * @param dt - thời gian kể từ lần gọi hàm cuối cùng, được sử dụng khi thay đổi hoạt ảnh
      */
     void update(Uint32 dt);
     /**
-     * Funkcja odpowiada za odjęcie życia, wyczyszczenie wszystkich flag i włączenie animacji powstawania czołgu.
+     * Chức năng có nhiệm vụ trừ máu, xóa hết cờ và bật hoạt ảnh đội hình xe tăng.
      */
     void respawn();
     /**
-     * Funkcja odpowiada za włączenie animacji wybuchu czołgu jeżeli czołgu nie miał osłonki, łódki lub trzech gwiazdek.
+     * Chức năng này có nhiệm vụ bật hoạt ảnh nổ xe tăng nếu xe tăng không có nắp, thuyền hoặc ba ngôi sao.
      */
     void destroy();
     /**
-     * Funkcja odpowiada za stworzenie pocisku jeżeli jeszcze nie stworzono maksymalnej ich ilości,
-     * nadaniu mu większej szybkości jeżeli gracz ma przynajmniej jedną gwiazdkę oraz dodaniu zwiększonych obrażeni jeżeli gracz ma trzy gwiazdki.
-     * @return wskaźnik na utworzony pocisk, jeżeli nie stworzono pocisku zwraca @a nullptr
+     * Hàm này chịu trách nhiệm tạo một đường đạn nếu số lượng tối đa của chúng chưa được tạo,
+     * tăng tốc độ hơn nếu người chơi có ít nhất một sao và tăng thêm sát thương nếu người chơi có ba sao.
+     * @return con trỏ tới đường đạn đã tạo, nếu không có đường đạn nào được tạo sẽ trả về @a nullptr
      */
     Bullet* fire();
 
     /**
-     * Funkcja zmienia liczbę aktualnie posiadanych gwiazdek. Przy niezerowej liczbie gwiazdek zwiększana jest domyślna prędkość czołgu,
-     * a dla liczby gwiazdek większej od 1 oraz dla każdego dodatniego @a c zwiększana jest maksymalna liczba pocisków.
-     * @param c - zmiana liczby gwiazdek, może być ujemna
+     * Chức năng thay đổi số sao bạn hiện có. Khi số sao khác 0, tốc độ mặc định của xe tăng sẽ tăng lên,
+     * a cho số lượng sao lớn hơn 1 và với mỗi @a c dương thì số lượng đạn tối đa được tăng lên.
+     * @param c - sự thay đổi số lượng sao có thể âm
      */
     void changeStarCountBy(int c);
 
     /**
-     * Klawiszcze sterujące ruchami aktualngo gracza.
+     * Các phím điều khiển chuyển động của người chơi hiện tại.
      */
     PlayerKeys player_keys;
     /**
-     * Aktualnie posiadane punkty przez gracza.
+     * Điểm hiện tại của người chơi.
      */
     unsigned score;
 
 private:
     /**
-     * Aktualnie posiadana liczba gwiazdek; może się zawierać w przedziale [0, 3].
+     * Số lượng sao hiện tại; có thể nằm trong khoảng [0, 3].
      */
     int star_count;
     /**
-     * Czas jaki minął od ostatnego wystrzału pocisku.
+     * Thời gian đã trôi qua kể từ lần bắn tên lửa cuối cùng.
      */
     Uint32 m_fire_time;
 };

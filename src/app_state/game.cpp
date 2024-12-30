@@ -78,7 +78,7 @@ void Game::draw()
 
     if(m_level_start_screen)
     {
-        std::string level_name = "STAGE " + Engine::intToString(m_current_level);
+        std::string level_name = "STAGE " + Engine::intToString(m_current_level);   
         renderer->drawText(nullptr, level_name, {255, 255, 255, 255}, 1);
     }
     else
