@@ -28,34 +28,6 @@ struct InputData
     bool fire;
 };
 
-struct PlayerData
-{
-    double pos_x;
-    double pos_y;
-    int direction;
-    bool is_firing;
-    bool is_destroyed;
-};
-
-struct EnemyData
-{
-    double pos_x;
-    double pos_y;
-    int direction;
-    int type;
-    int lives_count;
-    bool is_destroyed;
-    bool has_bonus;
-};
-
-struct BonusData
-{
-    double pos_x;
-    double pos_y;
-    int type;
-    bool is_active;
-};
-
 struct ClientData
 {
     SOCKET client_socket;
@@ -88,13 +60,7 @@ struct PlayerInfo
 struct GameState
 {
     InputData client_input;
-    std::vector<PlayerData> players;
-    std::vector<EnemyData> enemies;
-    std::vector<BonusData> bonuses;
-    bool eagle_destroyed;
-    bool protect_eagle;
-    int current_level;
-    int enemy_to_kill;
+    std::string game_state;
 };
 
 // Maps toàn cục
@@ -394,53 +360,18 @@ std::string handleJoinRoom(const std::string &username, const std::string &room_
 std::string handleHostData(const std::string &data)
 {
     std::stringstream ss(data);
-    std::string room_code, player_data;
+    std::string head, room_code;
 
+    std::getline(ss, head, ':');
     std::getline(ss, room_code, ':');
-    std::getline(ss, player_data);
 
-    std::stringstream player_ss(player_data);
-    std::string value;
-    std::vector<std::string> values;
-
-    while (std::getline(player_ss, value, ','))
+    // Create game state if not exists
+    if (game_states.find(room_code) == game_states.end())
     {
-        values.push_back(value);
+        game_states[room_code] = GameState();
     }
 
-    if (values.size() >= 5)
-    {
-        pthread_mutex_lock(&game_states_mutex);
-
-        // Create game state if not exists
-        if (game_states.find(room_code) == game_states.end())
-        {
-            game_states[room_code] = GameState();
-        }
-
-        // Get current game state
-        auto &game_state = game_states[room_code];
-
-        // Update host player data (first player)
-        if (game_state.players.empty())
-        {
-            game_state.players.push_back(PlayerData());
-        }
-
-        PlayerData &host_data = game_state.players[0];
-        host_data.pos_x = std::stod(values[0]);
-        host_data.pos_y = std::stod(values[1]);
-        host_data.direction = std::stoi(values[2]);
-        host_data.is_firing = (values[3] == "1");
-        host_data.is_destroyed = (values[4] == "1");
-
-        pthread_mutex_unlock(&game_states_mutex);
-
-        // // Print for debugging
-        // std::cout << "Updated game state for room " << room_code << std::endl;
-        // std::cout << "Host position: (" << host_data.pos_x << "," << host_data.pos_y << ")" << std::endl;
-        // std::cout << "------------------------" << std::endl;
-    }
+    game_states[room_code].game_state = data;
 
     return room_code;
 }
@@ -450,13 +381,13 @@ std::string handleClientData(const std::string &data)
     std::stringstream ss(data);
     std::string room_code, input_data;
 
-    std::cout << "Raw data: " << data << std::endl;
+    // std::cout << "Raw data: " << data << std::endl;
 
     // Parse format: "client_input:room_code:up,down,left,right,fire"
     std::getline(ss, room_code, ':');
     std::getline(ss, input_data);
 
-    std::cout << "Input data string: " << input_data << std::endl;
+    // std::cout << "Input data string: " << input_data << std::endl;
 
     std::vector<bool> inputs;
     std::stringstream input_ss(input_data);
@@ -588,17 +519,18 @@ void *handleTCPClient(void *arg)
         std::string room_code = request.substr(11); // Bỏ "check_game:"
         response = handleCheckGame(room_code);
     }
-    else if (request.find("host_data:") == 0)
+    else if (request.find("game_state:") == 0)
     {
-        std::string hostData = request.substr(10);
-        auto room_code = handleHostData(hostData);
+        // Handle Data
+        auto room_code = handleHostData(request);
 
+        // response
         response = "host_response:";
 
         if (game_states.find(room_code) != game_states.end())
         {
             auto &state = game_states[room_code];
-            
+
             response += std::to_string(state.client_input.up) + "," + std::to_string(state.client_input.down) + "," + std::to_string(state.client_input.left) + "," + std::to_string(state.client_input.right) + "," + std::to_string(state.client_input.fire);
         }
         else
@@ -609,7 +541,17 @@ void *handleTCPClient(void *arg)
     else if (request.find("client_data:") == 0)
     {
         std::string clientData = request.substr(12);
-        handleClientData(clientData);
+        auto room_code = handleClientData(clientData);
+
+        if (game_states.find(room_code) != game_states.end())
+        {
+            auto &state = game_states[room_code];
+            response = state.game_state;
+        }
+        else
+        {
+            response = "game_state:" + room_code + ":";
+        }
     }
     else
     {
