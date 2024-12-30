@@ -42,6 +42,8 @@ public:
     void checkConnect();
     void HandleHostData();
     void HandleClientData();
+    void HostUpdate(Uint32 dt);
+    void ClientUpdate();
 
 protected:
 

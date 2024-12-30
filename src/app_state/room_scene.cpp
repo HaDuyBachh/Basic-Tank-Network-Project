@@ -330,7 +330,7 @@ AppState* RoomScene::nextState() {
         return new Menu();
     }
     if (m_room_joined && m_finished) {
-        return new GameOnline(m_current_room_code, m_is_host, 2);
+        return new GameOnline(m_current_room_code, m_is_host, m_players_in_room);
     }
     return nullptr;
 }
