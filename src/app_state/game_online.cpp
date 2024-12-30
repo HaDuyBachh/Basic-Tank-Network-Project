@@ -58,6 +58,20 @@ GameOnline::~GameOnline() {
 void GameOnline::syncGameState() {
     // Cập nhật game state
     m_game_state.enemies.clear();
+
+    for (auto player : m_players) {
+        PlayerOnline* p = dynamic_cast<PlayerOnline*>(player);
+        if (p) {
+            PlayerData player_data;
+            player_data.pos_x = p->pos_x;
+            player_data.pos_y = p->pos_y;
+            player_data.direction = p->direction;
+            player_data.is_firing = p->isFiring();
+            player_data.is_destroyed = p->testFlag(TSF_DESTROYED);
+            m_game_state.players.push_back(player_data);
+        }
+    }
+
     for (auto enemy : m_enemies) {
         GameState::EnemyData enemy_data;
         enemy_data.pos_x = enemy->pos_x;
@@ -120,6 +134,37 @@ void GameOnline::handleGameSync(const std::string& data) {
 
     std::stringstream ss(data.substr(data.find(":") + m_room_code.length() + 2));
     std::string item;
+
+    std::getline(ss, item, ';');
+    int player_count = std::stoi(item);
+    
+    m_players.clear();
+    for (int i = 0; i < player_count; i++) {
+        std::getline(ss, item, ';');
+        std::stringstream player_ss(item);
+        std::string value;
+        
+        std::getline(player_ss, value, ',');
+        double pos_x = std::stod(value);
+        std::getline(player_ss, value, ',');
+        double pos_y = std::stod(value);
+        std::getline(player_ss, value, ',');
+        int direction = std::stoi(value);
+        std::getline(player_ss, value, ',');
+        bool is_firing = std::stoi(value);
+        std::getline(player_ss, value, ',');
+        bool is_destroyed = std::stoi(value);
+
+        PlayerOnline* player = new PlayerOnline(pos_x, pos_y, ST_PLAYER_1, m_is_host, m_room_code);
+        player->direction = static_cast<Direction>(direction);
+        if (is_firing) {
+            player->fire();
+        }
+        if (is_destroyed) {
+            player->destroy();
+        }
+        m_players.push_back(player);
+    }
     
     // Parse enemies
     std::getline(ss, item, ';');

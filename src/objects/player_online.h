@@ -2,6 +2,7 @@
 #define PLAYER_ONLINE_H
 
 #include "player.h"
+#include "../appconfig.h"
 #include <string>
 #include <winsock2.h>
 
@@ -22,6 +23,9 @@ public:
     void update(Uint32 dt) override;
     void sendData(); // Gửi dữ liệu cho player khác
     void receiveData(); // Nhận dữ liệu từ player khác
+    bool isFiring() const {
+        return m_fire_time > AppConfig::player_reload_time;
+    }
     
 private:
     bool m_is_host;

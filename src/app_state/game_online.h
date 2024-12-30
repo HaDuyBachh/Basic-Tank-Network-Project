@@ -3,6 +3,7 @@
 
 #include "game.h"
 #include "../objects/player_online.h"
+#include "../appconfig.h"
 
 class GameOnline : public Game {
 
@@ -23,6 +24,7 @@ struct GameState {
             bool is_active;
         };
 
+        std::vector<PlayerData> players;
         std::vector<EnemyData> enemies;
         std::vector<BonusData> bonuses;
         bool eagle_destroyed;

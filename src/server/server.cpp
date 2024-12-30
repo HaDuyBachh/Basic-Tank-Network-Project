@@ -18,6 +18,14 @@
 #define BUFFER_SIZE 1024
 
 // Thêm vào đầu file sau các includes
+struct PlayerData {
+    double pos_x;
+    double pos_y;
+    int direction;
+    bool is_firing;
+    bool is_destroyed;
+};
+
 struct EnemyData
 {
     double pos_x;
@@ -68,6 +76,7 @@ struct PlayerInfo
 // Thêm struct để lưu trữ game state
 struct GameState
 {
+    std::vector<PlayerData> players;
     std::vector<EnemyData> enemies;
     std::vector<BonusData> bonuses;
     bool eagle_destroyed;
