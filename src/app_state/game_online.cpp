@@ -664,8 +664,9 @@ void GameOnline::checkConnect()
     WSACleanup();
 }
 
-void GameOnline::ClientUpdate()
+void GameOnline::ClientUpdate(Uint32 dt)
 {
+    Game::update(dt);
 }
 
 void GameOnline::HostUpdate(Uint32 dt)
@@ -855,6 +856,12 @@ void GameOnline::update(Uint32 dt)
     }
     else if (!m_is_host)
     {
-        // HandleClientData();
+        HandleClientData();
+        ClientUpdate(dt);
     }
+}
+
+void GameOnline::draw()
+{
+    Game::draw();
 }
