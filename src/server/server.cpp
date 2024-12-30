@@ -17,6 +17,24 @@
 #define UDP_PORT 8889
 #define BUFFER_SIZE 1024
 
+// Thêm vào đầu file sau các includes
+struct EnemyData {
+    double pos_x;
+    double pos_y;
+    int direction;
+    int type;
+    int lives_count;
+    bool is_destroyed;
+    bool has_bonus;
+};
+
+struct BonusData {
+    double pos_x;
+    double pos_y;
+    int type;
+    bool is_active;
+};
+
 struct ClientData {
     SOCKET client_socket;
     struct sockaddr_in client_addr;
@@ -29,6 +47,7 @@ struct RoomInfo {
     bool is_playing;
     
     RoomInfo() : is_playing(false) {}
+    std::vector<struct sockaddr_in> player_addrs;
 };
 
 struct PlayerInfo {
@@ -41,11 +60,26 @@ struct PlayerInfo {
     PlayerInfo() : is_authenticated(false), is_host(false) {}
 };
 
+// Thêm struct để lưu trữ game state
+struct GameState {
+    std::vector<EnemyData> enemies;
+    std::vector<BonusData> bonuses;
+    bool eagle_destroyed;
+    bool protect_eagle;
+    int current_level;
+    int enemy_to_kill;
+};
+
+
+
 // Maps toàn cục
 std::map<std::string, PlayerInfo> players;
 std::map<std::string, RoomInfo> rooms;
 pthread_mutex_t players_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t rooms_mutex = PTHREAD_MUTEX_INITIALIZER;
+// Map để lưu trữ game state cho mỗi phòng
+std::map<std::string, GameState> game_states;
+pthread_mutex_t game_states_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 // Hàm tạo và ghi file room
 void writeRoomFile(const std::string& room_code, const std::string& host, const std::vector<std::string>& players) {
@@ -64,6 +98,195 @@ void writeRoomFile(const std::string& room_code, const std::string& host, const 
         room_file << "=== End of File ===" << std::endl;
         room_file.close();
     }
+}
+
+std::string serializeGameState(const GameState& state) {
+    std::stringstream ss;
+    
+    // Serialize enemies
+    ss << state.enemies.size() << ";";
+    for(const auto& enemy : state.enemies) {
+        ss << enemy.pos_x << "," << enemy.pos_y << ","
+           << enemy.direction << "," << enemy.type << ","
+           << enemy.lives_count << "," << enemy.is_destroyed << ","
+           << enemy.has_bonus << ";";
+    }
+    
+    // Serialize bonuses
+    ss << state.bonuses.size() << ";";
+    for(const auto& bonus : state.bonuses) {
+        ss << bonus.pos_x << "," << bonus.pos_y << ","
+           << bonus.type << "," << bonus.is_active << ";";
+    }
+    
+    ss << state.eagle_destroyed << ";"
+       << state.protect_eagle << ";"
+       << state.current_level << ";"
+       << state.enemy_to_kill;
+       
+    return ss.str();
+}
+
+GameState deserializeGameState(const std::string& data) {
+    GameState state;
+    std::stringstream ss(data);
+    std::string segment;
+    
+    // Parse enemies
+    std::getline(ss, segment, ';');
+    int enemy_count = std::stoi(segment);
+    for(int i = 0; i < enemy_count; i++) {
+        std::getline(ss, segment, ';');
+        std::stringstream enemy_ss(segment);
+        std::string value;
+        EnemyData enemy;
+        
+        std::getline(enemy_ss, value, ','); enemy.pos_x = std::stod(value);
+        std::getline(enemy_ss, value, ','); enemy.pos_y = std::stod(value);
+        std::getline(enemy_ss, value, ','); enemy.direction = std::stoi(value);
+        std::getline(enemy_ss, value, ','); enemy.type = std::stoi(value);
+        std::getline(enemy_ss, value, ','); enemy.lives_count = std::stoi(value);
+        std::getline(enemy_ss, value, ','); enemy.is_destroyed = std::stoi(value);
+        std::getline(enemy_ss, value, ','); enemy.has_bonus = std::stoi(value);
+        
+        state.enemies.push_back(enemy);
+    }
+    
+    // Parse bonuses
+    std::getline(ss, segment, ';');
+    int bonus_count = std::stoi(segment);
+    for(int i = 0; i < bonus_count; i++) {
+        std::getline(ss, segment, ';');
+        std::stringstream bonus_ss(segment);
+        std::string value;
+        BonusData bonus;
+        
+        std::getline(bonus_ss, value, ','); bonus.pos_x = std::stod(value);
+        std::getline(bonus_ss, value, ','); bonus.pos_y = std::stod(value);
+        std::getline(bonus_ss, value, ','); bonus.type = std::stoi(value);
+        std::getline(bonus_ss, value, ','); bonus.is_active = std::stoi(value);
+        
+        state.bonuses.push_back(bonus);
+    }
+    
+    // Parse other game states
+    std::getline(ss, segment, ';'); state.eagle_destroyed = std::stoi(segment);
+    std::getline(ss, segment, ';'); state.protect_eagle = std::stoi(segment);
+    std::getline(ss, segment, ';'); state.current_level = std::stoi(segment);
+    std::getline(ss, segment, ';'); state.enemy_to_kill = std::stoi(segment);
+    
+    return state;
+}
+
+void* handleGameSync(void* arg) {
+    SOCKET sync_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    struct sockaddr_in sync_addr;
+    sync_addr.sin_family = AF_INET;
+    sync_addr.sin_port = htons(8890); // Port riêng cho game sync
+    sync_addr.sin_addr.s_addr = INADDR_ANY;
+    
+    bind(sync_socket, (struct sockaddr*)&sync_addr, sizeof(sync_addr));
+    
+    while(true) {
+        char buffer[4096];
+        struct sockaddr_in client_addr;
+        int client_len = sizeof(client_addr);
+        
+        int recv_len = recvfrom(sync_socket, buffer, sizeof(buffer), 0,
+                               (struct sockaddr*)&client_addr, &client_len);
+                               
+        if (recv_len > 0) {
+            buffer[recv_len] = '\0';
+            std::string data(buffer);
+            
+            // Parse room code và game state
+            size_t pos = data.find(':');
+            if (pos != std::string::npos) {
+                std::string room_code = data.substr(0, pos);
+                std::string state_data = data.substr(pos + 1);
+                
+                pthread_mutex_lock(&game_states_mutex);
+                pthread_mutex_lock(&rooms_mutex);
+                
+                if (rooms.find(room_code) != rooms.end()) {
+                    auto& room = rooms[room_code];
+                    
+                    // Nếu là host gửi game state
+                    if (std::string(inet_ntoa(client_addr.sin_addr)) == room.host) {
+                        // Deserialize game state từ host
+                        GameState state = deserializeGameState(state_data);
+                        game_states[room_code] = state;
+                        
+                        // Serialize lại và gửi cho tất cả clients
+                        std::string serialized_state = serializeGameState(state);
+                        std::string message = room_code + ":" + serialized_state;
+                        
+                        // Gửi cho tất cả clients trừ host
+                        for (auto& player_addr : room.player_addrs) {
+                            if (player_addr.sin_addr.s_addr != client_addr.sin_addr.s_addr) {
+                                sendto(sync_socket, message.c_str(), message.length(), 0,
+                                     (struct sockaddr*)&player_addr, sizeof(player_addr));
+                            }
+                        }
+                    }
+                }
+                
+                pthread_mutex_unlock(&rooms_mutex);
+                pthread_mutex_unlock(&game_states_mutex);
+            }
+        }
+    }
+    
+    closesocket(sync_socket);
+    return nullptr;
+}
+
+// Thêm hàm xử lý UDP
+void* handleUDPMessages(void* arg) {
+    SOCKET udp_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    struct sockaddr_in udp_addr;
+    udp_addr.sin_family = AF_INET;
+    udp_addr.sin_port = htons(8889);
+    udp_addr.sin_addr.s_addr = INADDR_ANY;
+    
+    bind(udp_socket, (struct sockaddr*)&udp_addr, sizeof(udp_addr));
+    
+    while(true) {
+        char buffer[1024];
+        struct sockaddr_in client_addr;
+        int client_len = sizeof(client_addr);
+        
+        int recv_len = recvfrom(udp_socket, buffer, sizeof(buffer), 0,
+                               (struct sockaddr*)&client_addr, &client_len);
+                               
+        if (recv_len > 0) {
+            buffer[recv_len] = '\0';
+            std::string data(buffer);
+            
+            // Parse room code
+            size_t pos = data.find(':');
+            if (pos != std::string::npos) {
+                std::string room_code = data.substr(0, pos);
+                
+                pthread_mutex_lock(&rooms_mutex);
+                if (rooms.find(room_code) != rooms.end()) {
+                    auto& room = rooms[room_code];
+                    // Gửi dữ liệu cho tất cả players trong phòng
+                    for (auto& addr : room.player_addrs) {
+                        if (addr.sin_addr.s_addr != client_addr.sin_addr.s_addr ||
+                            addr.sin_port != client_addr.sin_port) {
+                            sendto(udp_socket, buffer, recv_len, 0,
+                                   (struct sockaddr*)&addr, sizeof(addr));
+                        }
+                    }
+                }
+                pthread_mutex_unlock(&rooms_mutex);
+            }
+        }
+    }
+    
+    closesocket(udp_socket);
+    return nullptr;
 }
 
 // Hàm lấy danh sách người chơi trong phòng
@@ -88,6 +311,21 @@ std::string handleGetPlayers(const std::string& room_code) {
 
     pthread_mutex_unlock(&rooms_mutex);
     return player_list;
+}
+
+void handleGameEnd(const std::string& room_code) {
+    pthread_mutex_lock(&rooms_mutex);
+    if (rooms.find(room_code) != rooms.end()) {
+        rooms[room_code].is_playing = false;
+        
+        // Xóa game state
+        pthread_mutex_lock(&game_states_mutex);
+        if (game_states.find(room_code) != game_states.end()) {
+            game_states.erase(room_code);
+        }
+        pthread_mutex_unlock(&game_states_mutex);
+    }
+    pthread_mutex_unlock(&rooms_mutex);
 }
 
 // Hàm xử lý rời phòng
@@ -328,12 +566,19 @@ void* handleTCPClient(void* arg) {
 int main() {
     WSADATA wsaData;
     WSAStartup(MAKEWORD(2, 2), &wsaData);
-
     SOCKET tcp_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     struct sockaddr_in tcp_addr;
     tcp_addr.sin_family = AF_INET;
     tcp_addr.sin_port = htons(TCP_PORT);
     tcp_addr.sin_addr.s_addr = INADDR_ANY;
+
+    // Tạo UDP thread
+    pthread_t udp_thread;
+    pthread_create(&udp_thread, nullptr, handleUDPMessages, nullptr);
+    
+    // Thêm game sync thread
+    pthread_t game_sync_thread;
+    pthread_create(&game_sync_thread, nullptr, handleGameSync, nullptr);
 
     if (bind(tcp_socket, (struct sockaddr*)&tcp_addr, sizeof(tcp_addr)) == SOCKET_ERROR) {
         std::cout << "TCP bind failed" << std::endl;

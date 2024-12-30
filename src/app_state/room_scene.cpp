@@ -275,8 +275,8 @@ AppState* RoomScene::nextState() {
         return new Menu();
     }
     if (m_room_joined && m_finished) {
-        // Return game state with room info
-        
+        return new GameOnline(m_current_room_code, m_is_host, m_players_in_room);
+
     }
     return nullptr;
 }

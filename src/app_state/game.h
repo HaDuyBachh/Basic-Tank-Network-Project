@@ -71,7 +71,7 @@ public:
 
     // ... [Các getter và setter giữ nguyên không đổi]
 
-private:
+protected:
     /**
      * Tải bản đồ cấp độ từ tệp
      * @param path - đường dẫn đến tệp bản đồ
@@ -254,6 +254,9 @@ private:
      * Số vị trí tạo kẻ thù mới. Thay đổi mỗi khi tạo kẻ thù.
      */
     int m_enemy_respown_position;
+
 };
+
+
 
 #endif // GAME_H

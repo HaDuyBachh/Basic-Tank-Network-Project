@@ -89,7 +89,6 @@ public:
      */
     unsigned score;
 
-private:
     /**
      * Số lượng sao hiện tại; có thể nằm trong khoảng [0, 3].
      */
@@ -98,6 +97,7 @@ private:
      * Thời gian đã trôi qua kể từ lần bắn tên lửa cuối cùng.
      */
     Uint32 m_fire_time;
+
 };
 
 #endif // PLAYER_H
