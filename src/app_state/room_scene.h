@@ -22,6 +22,8 @@ private:
     void leaveRoom();
     bool joinRoom(const std::string& room_code);
     void updatePlayerList();
+    void startGame();
+    bool checkGameStarted();
 
 public:
     RoomScene(bool isHost = true); // isHost: true để tạo phòng, false để join phòng

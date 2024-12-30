@@ -93,6 +93,57 @@ void RoomScene::renderInputField(const std::string& label, const std::string& co
                       text_color, 2);
 }
 
+bool RoomScene::checkGameStarted() {
+    WSADATA wsaData;
+    WSAStartup(MAKEWORD(2, 2), &wsaData);
+    
+    SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    struct sockaddr_in server_addr;
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(8888);
+    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+    bool game_started = false;
+
+    if (connect(sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) == 0) {
+        std::string request = "check_game:" + m_current_room_code;
+        send(sock, request.c_str(), request.length(), 0);
+
+        char buffer[1024] = {0};
+        recv(sock, buffer, sizeof(buffer), 0);
+        std::string response(buffer);
+
+        game_started = (response == "STARTED");
+    }
+
+    closesocket(sock);
+    WSACleanup();
+    return game_started;
+}
+
+void RoomScene::startGame() {
+    if (!m_is_host) return;
+
+    WSADATA wsaData;
+    WSAStartup(MAKEWORD(2, 2), &wsaData);
+    
+    SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    struct sockaddr_in server_addr;
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(8888);
+    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+    if (connect(sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) == 0) {
+        std::string request = "start_game:" + m_current_room_code;
+        send(sock, request.c_str(), request.length(), 0);
+
+        char buffer[1024] = {0};
+        recv(sock, buffer, sizeof(buffer), 0);
+    }
+
+    closesocket(sock);
+    WSACleanup();
+}
 
 bool RoomScene::createRoom(const std::string& room_code) {
     WSADATA wsaData;
@@ -220,6 +271,10 @@ void RoomScene::updatePlayerList() {
 void RoomScene::update(Uint32 dt) {
     if (m_room_joined) {
         updatePlayerList();
+
+        if (!m_is_host && checkGameStarted()) {
+            m_finished = true;
+        }
     }
 }
 
@@ -243,10 +298,10 @@ void RoomScene::eventProcess(SDL_Event* ev) {
                     }
                 } else if (m_room_joined && m_is_host && m_current_field == 1) {
                     // Start game
+                    startGame();
                     m_finished = true;
                 }
                 break;
-
             case SDLK_UP:
             case SDLK_DOWN:
                 if (!m_room_joined) {
@@ -275,7 +330,7 @@ AppState* RoomScene::nextState() {
         return new Menu();
     }
     if (m_room_joined && m_finished) {
-        return new GameOnline(m_current_room_code, m_is_host, m_players_in_room);
+        return new GameOnline(m_current_room_code, m_is_host ? 1 : 2, m_players_in_room);
 
     }
     return nullptr;
