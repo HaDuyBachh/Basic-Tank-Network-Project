@@ -7,7 +7,7 @@
 
 class GameOnline : public Game {
 
-struct InputData {
+struct ClientInput {
     bool up;
     bool down;
     bool left;
@@ -57,6 +57,7 @@ protected:
 
 
 private:
+    ClientInput m_client_input;
     std::string m_room_code;
     bool m_is_host;
     SOCKET m_sync_socket;

@@ -12,8 +12,9 @@
 #include <algorithm>
 #include <iostream>
 #include <cmath>
+#include <windows.h>
 
-GameOnline::GameOnline(const std::string &room_code, bool is_host, const std::vector<std::string>& players) : Game()
+GameOnline::GameOnline(const std::string &room_code, bool is_host, const std::vector<std::string>& players) : Game(2)
 {
     m_room_code = room_code;
     m_is_host = is_host;
@@ -31,12 +32,19 @@ GameOnline::GameOnline(const std::string &room_code, bool is_host, const std::ve
     m_enemy_respown_position = 0;
 
     nextLevel();
+
+    if (is_host)
+    {
+        AllocConsole();
+        freopen("CONOUT$", "w", stdout);
+        freopen("CONOUT$", "w", stderr);
+        std::cout << "START DEBUG \n";
+    }
 }
 
 GameOnline::~GameOnline()
 {
-    closesocket(m_sync_socket);
-    WSACleanup();
+
 }
 
 void GameOnline::HandleClientData() {
@@ -112,7 +120,44 @@ void GameOnline::HandleHostData() {
 
         // Nhận phản hồi từ server
         char buffer[1024] = {0};
-        recv(sock, buffer, sizeof(buffer), 0);
+        if(recv(sock, buffer, sizeof(buffer), 0) > 0) {
+            std::string response(buffer);
+            std::stringstream ss(response);
+            
+            std::cout << "Raw: |" <<response<< std::endl;
+
+            std::string header;
+            std::getline(ss, header, ':');
+            
+            std::cout << "Raw response: |" << header << "|" << response << std::endl;
+
+            if(header == "host_response") {
+                std::string input_data;
+                std::getline(ss, input_data);
+                std::vector<bool> inputs;
+                std::stringstream input_ss(input_data);
+                std::string value;
+                
+                while(std::getline(input_ss, value, ',')) {
+                    inputs.push_back(value == "1");
+                }
+                
+                if(inputs.size() >= 5) {
+                    m_client_input.up = inputs[0];
+                    m_client_input.down = inputs[1];
+                    m_client_input.left = inputs[2];
+                    m_client_input.right = inputs[3];
+                    m_client_input.fire = inputs[4];
+
+                    std::cout << "Parsed inputs: "
+                     << inputs[0] << ","
+                     << inputs[1] << ","
+                     << inputs[2] << ","
+                     << inputs[3] << ","
+                     << inputs[4] << std::endl;
+                }
+            }
+        }
     }
 
     // Đóng socket và cleanup
@@ -190,8 +235,15 @@ void GameOnline::HostUpdate(Uint32 dt)
     // Cập nhật tất cả các đối tượng
     for (auto enemy : m_enemies)
         enemy->update(dt);
+    
     for (auto player : m_players)
-        player->update(dt);
+    {
+        if (player->player_keys == AppConfig::player_keys.at(1))
+            player->updateWithInput(dt, m_client_input.up, m_client_input.down, m_client_input.left, m_client_input.right, m_client_input.fire);
+        else 
+            player->update(dt);
+    }
+        
     for (auto bonus : m_bonuses)
         bonus->update(dt);
     m_eagle->update(dt);

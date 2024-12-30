@@ -391,7 +391,7 @@ std::string handleJoinRoom(const std::string &username, const std::string &room_
     return "OK";
 }
 
-void handleHostData(const std::string &data)
+std::string handleHostData(const std::string &data)
 {
     std::stringstream ss(data);
     std::string room_code, player_data;
@@ -441,11 +441,12 @@ void handleHostData(const std::string &data)
         // std::cout << "Host position: (" << host_data.pos_x << "," << host_data.pos_y << ")" << std::endl;
         // std::cout << "------------------------" << std::endl;
     }
+
+    return room_code;
 }
 
-void handleClientData(const std::string &data)
+std::string handleClientData(const std::string &data)
 {
-
     std::stringstream ss(data);
     std::string room_code, input_data;
 
@@ -454,8 +455,8 @@ void handleClientData(const std::string &data)
     // Parse format: "client_input:room_code:up,down,left,right,fire"
     std::getline(ss, room_code, ':');
     std::getline(ss, input_data);
-    
-     std::cout << "Input data string: " << input_data << std::endl;
+
+    std::cout << "Input data string: " << input_data << std::endl;
 
     std::vector<bool> inputs;
     std::stringstream input_ss(input_data);
@@ -467,7 +468,7 @@ void handleClientData(const std::string &data)
         inputs.push_back(value == "1");
     }
 
-    //std::cout<<inputs.size()<<std::endl;
+    // std::cout<<inputs.size()<<std::endl;
 
     if (inputs.size() >= 5)
     {
@@ -494,6 +495,8 @@ void handleClientData(const std::string &data)
 
         pthread_mutex_unlock(&game_states_mutex);
     }
+
+    return room_code;
 }
 
 // Hàm xử lý TCP client
@@ -588,7 +591,20 @@ void *handleTCPClient(void *arg)
     else if (request.find("host_data:") == 0)
     {
         std::string hostData = request.substr(10);
-        handleHostData(hostData);
+        auto room_code = handleHostData(hostData);
+
+        response = "host_response:";
+
+        if (game_states.find(room_code) != game_states.end())
+        {
+            auto &state = game_states[room_code];
+            
+            response += std::to_string(state.client_input.up) + "," + std::to_string(state.client_input.down) + "," + std::to_string(state.client_input.left) + "," + std::to_string(state.client_input.right) + "," + std::to_string(state.client_input.fire);
+        }
+        else
+        {
+            response += "0,0,0,0,0"; // Default no input
+        }
     }
     else if (request.find("client_data:") == 0)
     {
@@ -597,7 +613,7 @@ void *handleTCPClient(void *arg)
     }
     else
     {
-        std::cout<<"Unknown: "<<request<<std::endl;
+        std::cout << "Unknown: " << request << std::endl;
     }
 
     send(client_socket, response.c_str(), response.length(), 0);

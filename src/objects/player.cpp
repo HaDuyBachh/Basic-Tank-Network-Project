@@ -29,6 +29,55 @@ Player::Player(double x, double y, SpriteType type)
    respawn();
 }
 
+void Player::updateWithInput(Uint32 dt, bool up, bool down, bool left, bool right, bool fire)
+{
+    Tank::update(dt);
+
+    if(!testFlag(TSF_MENU))
+    {
+        if(up)
+        {
+            setDirection(D_UP);
+            speed = default_speed;
+        }
+        else if(down)
+        {
+            setDirection(D_DOWN);
+            speed = default_speed;
+        }
+        else if(left)
+        {
+            setDirection(D_LEFT);
+            speed = default_speed;
+        }
+        else if(right)
+        {
+            setDirection(D_RIGHT);
+            speed = default_speed;
+        }
+        else
+        {
+            if(!testFlag(TSF_ON_ICE) || m_slip_time == 0)
+                speed = 0.0;
+        }
+
+        if(fire && m_fire_time > AppConfig::player_reload_time)
+        {
+            Player::fire();
+            m_fire_time = 0;
+        }
+    }
+
+    m_fire_time += dt;
+
+    if(testFlag(TSF_LIFE))
+        src_rect = moveRect(m_sprite->rect, (testFlag(TSF_ON_ICE) ? new_direction : direction), m_current_frame + 2 * star_count);
+    else
+        src_rect = moveRect(m_sprite->rect, 0, m_current_frame + 2 * star_count);
+
+    stop = false;
+}
+
 void Player::update(Uint32 dt)
 {
     const Uint8 *key_state = SDL_GetKeyboardState(NULL);
