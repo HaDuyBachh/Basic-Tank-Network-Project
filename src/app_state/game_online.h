@@ -40,10 +40,11 @@ public:
     void update(Uint32 dt) override;
 
     void checkConnect();
+    void HandleHostData();
+    void HandleClientData();
 
 protected:
-    void syncGameState();
-    void handleGameSync(const std::string& data);
+
 
 private:
     std::string m_room_code;

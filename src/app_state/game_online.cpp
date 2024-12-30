@@ -13,8 +13,7 @@
 #include <iostream>
 #include <cmath>
 
-GameOnline::GameOnline(const std::string &room_code, bool is_host,
-                       const std::vector<std::string> &players)
+GameOnline::GameOnline(const std::string &room_code, bool is_host)
 {
     m_room_code = room_code;
     m_is_host = is_host;
@@ -23,7 +22,7 @@ GameOnline::GameOnline(const std::string &room_code, bool is_host,
     m_level_rows_count = 0;
     m_current_level = 0;
     m_eagle = nullptr;
-    m_player_count = players.size();
+    m_player_count = 2;
     m_enemy_redy_time = 0;
     m_pause = false;
     m_level_end_time = 0;
@@ -31,40 +30,58 @@ GameOnline::GameOnline(const std::string &room_code, bool is_host,
     m_protect_eagle_time = 0;
     m_enemy_respown_position = 0;
 
-    WSADATA wsaData;
-    WSAStartup(MAKEWORD(2, 2), &wsaData);
-    m_sync_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-
-    m_server_addr.sin_family = AF_INET;
-    m_server_addr.sin_port = htons(8890);
-    m_server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-
-    m_last_sync_time = SDL_GetTicks();
-
-    // Tạo players online
-    if (m_is_host)
-    {
-        PlayerOnline *p1 = new PlayerOnline(AppConfig::player_starting_point.at(0).x,
-                                            AppConfig::player_starting_point.at(0).y,
-                                            ST_PLAYER_1, true, room_code);
-        p1->player_keys = AppConfig::player_keys.at(0);
-        m_players.push_back(p1);
-    }
-    else
-    {
-        PlayerOnline *p2 = new PlayerOnline(AppConfig::player_starting_point.at(1).x,
-                                            AppConfig::player_starting_point.at(1).y,
-                                            ST_PLAYER_2, false, room_code);
-        p2->player_keys = AppConfig::player_keys.at(1);
-        m_players.push_back(p2);
-    }
-
     nextLevel();
 }
 
 GameOnline::~GameOnline()
 {
     closesocket(m_sync_socket);
+    WSACleanup();
+}
+
+void GameOnline::HandleClientData() 
+{
+
+}
+
+void GameOnline::HandleHostData() {
+    // Khởi tạo Winsock
+    WSADATA wsaData;
+    WSAStartup(MAKEWORD(2, 2), &wsaData);
+    
+    // Tạo socket TCP
+    SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+    // Cấu hình địa chỉ server
+    struct sockaddr_in server_addr;
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(8888);  
+    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+    // Kết nối đến server
+    if (connect(sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) == 0) {
+        // Đóng gói dữ liệu player
+        std::stringstream ss;
+
+        ss << "host_data:" << m_room_code << ":" 
+           << m_players[0]->pos_x << "," 
+           << m_players[0]->pos_y << ","
+           << m_players[0]->direction << ","
+           << (m_players[0]->m_fire_time > AppConfig::player_reload_time) << "," 
+           << m_players[0]->testFlag(TSF_DESTROYED);
+        
+        std::string data = ss.str();
+        
+        // Gửi dữ liệu
+        send(sock, data.c_str(), data.length(), 0);
+
+        // Nhận phản hồi từ server
+        char buffer[1024] = {0};
+        recv(sock, buffer, sizeof(buffer), 0);
+    }
+
+    // Đóng socket và cleanup
+    closesocket(sock);
     WSACleanup();
 }
 
@@ -79,8 +96,6 @@ void GameOnline::checkConnect() {
     server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
     if (connect(sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) == 0) {
-        // std::string request = "game_data: host is " + (this->m_is_host ? "true" : "false");
-        
         std::stringstream ss;
         ss << "game_data:" << m_room_code << ":" 
            << (m_is_host ? "host" : "client") << ":"
@@ -175,6 +190,11 @@ void GameOnline::update(Uint32 dt)
         m_bushes.erase(std::remove_if(m_bushes.begin(), m_bushes.end(), [](Object *b)
                                       {if(b->to_erase) {delete b; return true;} return false; }),
                        m_bushes.end());
+
+        HandleHostData();
     }
-    checkConnect();
+    else if (!m_is_host)
+    {
+        HandleClientData();
+    }
 }

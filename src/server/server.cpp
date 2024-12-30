@@ -380,6 +380,58 @@ std::string handleJoinRoom(const std::string &username, const std::string &room_
     return "OK";
 }
 
+void handleHostData(const std::string &data)
+{
+    std::stringstream ss(data);
+    std::string room_code, player_data;
+
+    std::getline(ss, room_code, ':');
+    std::getline(ss, player_data);
+
+    std::stringstream player_ss(player_data);
+    std::string value;
+    std::vector<std::string> values;
+
+    while (std::getline(player_ss, value, ','))
+    {
+        values.push_back(value);
+    }
+
+    if (values.size() >= 5)
+    {
+        pthread_mutex_lock(&game_states_mutex);
+
+        // Create game state if not exists
+        if (game_states.find(room_code) == game_states.end())
+        {
+            game_states[room_code] = GameState();
+        }
+
+        // Get current game state
+        auto &game_state = game_states[room_code];
+
+        // Update host player data (first player)
+        if (game_state.players.empty())
+        {
+            game_state.players.push_back(PlayerData());
+        }
+
+        PlayerData &host_data = game_state.players[0];
+        host_data.pos_x = std::stod(values[0]);
+        host_data.pos_y = std::stod(values[1]);
+        host_data.direction = std::stoi(values[2]);
+        host_data.is_firing = (values[3] == "1");
+        host_data.is_destroyed = (values[4] == "1");
+
+        pthread_mutex_unlock(&game_states_mutex);
+
+        // Print for debugging
+        std::cout << "Updated game state for room " << room_code << std::endl;
+        std::cout << "Host position: (" << host_data.pos_x << "," << host_data.pos_y << ")" << std::endl;
+        std::cout << "------------------------" << std::endl;
+    }
+}
+
 // Hàm xử lý TCP client
 void *handleTCPClient(void *arg)
 {
@@ -469,20 +521,10 @@ void *handleTCPClient(void *arg)
         std::string room_code = request.substr(11); // Bỏ "check_game:"
         response = handleCheckGame(room_code);
     }
-    else if (request.find("game_data:") == 0)
+    else if (request.find("host_data:") == 0)
     {
-        std::string data = request.substr(10);
-        std::stringstream ss(data);
-        std::string room_code, role;
-        int player_count;
-
-        std::getline(ss, room_code, ':');
-        std::getline(ss, role, ':');
-        ss >> player_count;
-
-        std::cout << "Game data received - Room: " << room_code
-                  << ", Role: " << role
-                  << ", Players: " << player_count << std::endl;
+        std::string hostData = request.substr(10);
+        handleHostData(hostData);
     }
 
     send(client_socket, response.c_str(), response.length(), 0);
