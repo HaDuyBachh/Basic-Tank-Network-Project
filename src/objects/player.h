@@ -3,6 +3,14 @@
 
 #include "tank.h"
 
+struct PlayerData {
+    double pos_x;
+    double pos_y; 
+    int direction;
+    bool is_firing;
+    bool is_destroyed;
+};
+
 /**
  * @brief Một lớp tương ứng với xe tăng của người chơi.
  */

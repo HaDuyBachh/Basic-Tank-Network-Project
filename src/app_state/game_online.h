@@ -2,8 +2,8 @@
 #define GAME_ONLINE_H
 
 #include "game.h"
-#include "../objects/player_online.h"
 #include "../appconfig.h"
+#include <winsock2.h>
 
 class GameOnline : public Game {
 

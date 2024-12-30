@@ -124,12 +124,12 @@ void GameOnline::HandleHostData() {
             std::string response(buffer);
             std::stringstream ss(response);
             
-            std::cout << "Raw: |" <<response<< std::endl;
+            // std::cout << "Raw: |" <<response<< std::endl;
 
             std::string header;
             std::getline(ss, header, ':');
             
-            std::cout << "Raw response: |" << header << "|" << response << std::endl;
+            // std::cout << "Raw response: |" << header << "|" << response << std::endl;
 
             if(header == "host_response") {
                 std::string input_data;
@@ -149,12 +149,12 @@ void GameOnline::HandleHostData() {
                     m_client_input.right = inputs[3];
                     m_client_input.fire = inputs[4];
 
-                    std::cout << "Parsed inputs: "
-                     << inputs[0] << ","
-                     << inputs[1] << ","
-                     << inputs[2] << ","
-                     << inputs[3] << ","
-                     << inputs[4] << std::endl;
+                    // std::cout << "Parsed inputs: "
+                    //  << inputs[0] << ","
+                    //  << inputs[1] << ","
+                    //  << inputs[2] << ","
+                    //  << inputs[3] << ","
+                    //  << inputs[4] << std::endl;
                 }
             }
         }
