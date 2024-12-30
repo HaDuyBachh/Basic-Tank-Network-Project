@@ -78,6 +78,24 @@ void Enemy::draw()
     Tank::draw();
 }
 
+void Enemy::updateOnline(Uint32 dt)
+{
+    if(to_erase) return;
+    Tank::update(dt);
+
+    if(testFlag(TSF_LIFE))
+    {
+        if(testFlag(TSF_BONUS))
+            src_rect = moveRect(m_sprite->rect, (testFlag(TSF_ON_ICE) ? new_direction : direction) - 4, m_current_frame);
+        else
+            src_rect = moveRect(m_sprite->rect, (testFlag(TSF_ON_ICE) ? new_direction : direction) + (lives_count -1) * 4, m_current_frame);
+    }
+    else
+        src_rect = moveRect(m_sprite->rect, 0, m_current_frame);
+
+    if(testFlag(TSF_FROZEN)) return;
+}
+
 void Enemy::update(Uint32 dt)
 {
     if(to_erase) return;

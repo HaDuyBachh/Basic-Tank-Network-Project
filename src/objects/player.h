@@ -69,6 +69,7 @@ public:
     Player(double x, double y, SpriteType type);
 
     void updateWithInput(Uint32 dt, bool up, bool down, bool left, bool right, bool fire);
+    void updateWithNoInput(Uint32 dt);
 
     /**
      * Chức năng này chịu trách nhiệm thay đổi hình ảnh động của xe tăng của người chơi và kiểm tra trạng thái của các phím được nhấn cũng như phản ứng với các phím điều khiển xe tăng của người chơi.

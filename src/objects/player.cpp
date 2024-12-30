@@ -78,6 +78,26 @@ void Player::updateWithInput(Uint32 dt, bool up, bool down, bool left, bool righ
     stop = false;
 }
 
+void Player::updateWithNoInput(Uint32 dt)
+{
+    Tank::update(dt);
+
+    if(!testFlag(TSF_MENU))
+    {
+        if(!testFlag(TSF_ON_ICE) || m_slip_time == 0)
+            speed = 0.0;
+    }
+
+    m_fire_time += dt;
+
+    if(testFlag(TSF_LIFE))
+        src_rect = moveRect(m_sprite->rect, (testFlag(TSF_ON_ICE) ? new_direction : direction), m_current_frame + 2 * star_count);
+    else
+        src_rect = moveRect(m_sprite->rect, 0, m_current_frame + 2 * star_count);
+
+    stop = false;
+}
+
 void Player::update(Uint32 dt)
 {
     const Uint8 *key_state = SDL_GetKeyboardState(NULL);

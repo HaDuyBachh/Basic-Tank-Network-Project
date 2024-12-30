@@ -31,6 +31,7 @@ public:
      * @param dt - czas od ostatniego wywołania funkcji
      */
     void update(Uint32 dt);
+    void updateOnline(Uint32 dt);
     /**
      * Zmniejszczenie poziomu pancerza o 1. Jeżeli poziom pancerza dojdze do zera następuje wybuch (zniszczenie) czołgu.
      */
