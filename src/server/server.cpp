@@ -18,6 +18,16 @@
 #define BUFFER_SIZE 1024
 
 // Thêm vào đầu file sau các includes
+
+struct InputData
+{
+    bool up;
+    bool down;
+    bool left;
+    bool right;
+    bool fire;
+};
+
 struct PlayerData
 {
     double pos_x;
@@ -77,6 +87,7 @@ struct PlayerInfo
 // Thêm struct để lưu trữ game state
 struct GameState
 {
+    InputData client_input;
     std::vector<PlayerData> players;
     std::vector<EnemyData> enemies;
     std::vector<BonusData> bonuses;
@@ -425,10 +436,63 @@ void handleHostData(const std::string &data)
 
         pthread_mutex_unlock(&game_states_mutex);
 
-        // Print for debugging
-        std::cout << "Updated game state for room " << room_code << std::endl;
-        std::cout << "Host position: (" << host_data.pos_x << "," << host_data.pos_y << ")" << std::endl;
-        std::cout << "------------------------" << std::endl;
+        // // Print for debugging
+        // std::cout << "Updated game state for room " << room_code << std::endl;
+        // std::cout << "Host position: (" << host_data.pos_x << "," << host_data.pos_y << ")" << std::endl;
+        // std::cout << "------------------------" << std::endl;
+    }
+}
+
+void handleClientData(const std::string &data)
+{
+
+    std::stringstream ss(data);
+    std::string room_code, input_data;
+
+    std::cout << "Raw data: " << data << std::endl;
+
+    // Parse format: "client_input:room_code:up,down,left,right,fire"
+    std::getline(ss, room_code, ':');
+    std::getline(ss, input_data);
+    
+     std::cout << "Input data string: " << input_data << std::endl;
+
+    std::vector<bool> inputs;
+    std::stringstream input_ss(input_data);
+    std::string value;
+
+    // Tách các giá trị input
+    while (std::getline(input_ss, value, ','))
+    {
+        inputs.push_back(value == "1");
+    }
+
+    //std::cout<<inputs.size()<<std::endl;
+
+    if (inputs.size() >= 5)
+    {
+        pthread_mutex_lock(&game_states_mutex);
+
+        // Tìm và cập nhật game state
+        if (game_states.find(room_code) != game_states.end())
+        {
+            auto &state = game_states[room_code];
+            state.client_input.up = inputs[0];
+            state.client_input.down = inputs[1];
+            state.client_input.left = inputs[2];
+            state.client_input.right = inputs[3];
+            state.client_input.fire = inputs[4];
+
+            std::cout << "Updated input for room " << room_code << std::endl;
+            std::cout << "Input state: "
+                      << "Up=" << inputs[0]
+                      << " Down=" << inputs[1]
+                      << " Left=" << inputs[2]
+                      << " Right=" << inputs[3]
+                      << " Fire=" << inputs[4] << std::endl;
+        }
+
+        pthread_mutex_unlock(&game_states_mutex);
     }
 }
 
@@ -525,6 +589,15 @@ void *handleTCPClient(void *arg)
     {
         std::string hostData = request.substr(10);
         handleHostData(hostData);
+    }
+    else if (request.find("client_data:") == 0)
+    {
+        std::string clientData = request.substr(12);
+        handleClientData(clientData);
+    }
+    else
+    {
+        std::cout<<"Unknown: "<<request<<std::endl;
     }
 
     send(client_socket, response.c_str(), response.length(), 0);

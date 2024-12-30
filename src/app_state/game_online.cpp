@@ -39,12 +39,46 @@ GameOnline::~GameOnline()
     WSACleanup();
 }
 
-void GameOnline::HandleClientData()
-{
+void GameOnline::HandleClientData() {
+    // Khởi tạo Winsock
+    WSADATA wsaData;
+    WSAStartup(MAKEWORD(2, 2), &wsaData);
+
+    // Tạo socket TCP
+    SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+    // Cấu hình địa chỉ server
+    struct sockaddr_in server_addr;
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(8888);
+    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+    // Lấy trạng thái input
+    const Uint8* keystate = SDL_GetKeyboardState(NULL);
+    
+    if (connect(sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) == 0) {
+        std::stringstream ss;
+        ss << "client_data:" << m_room_code << ":";
+        ss << (keystate[SDL_SCANCODE_UP] ? "1" : "0") << ",";
+        ss << (keystate[SDL_SCANCODE_DOWN] ? "1" : "0") << ",";
+        ss << (keystate[SDL_SCANCODE_LEFT] ? "1" : "0") << ",";
+        ss << (keystate[SDL_SCANCODE_RIGHT] ? "1" : "0") << ",";
+        ss << (keystate[SDL_SCANCODE_RCTRL] ? "1" : "0");
+
+        std::string data = ss.str();
+        send(sock, data.c_str(), data.length(), 0);
+
+        // Nhận dữ liệu game state từ server
+        char buffer[1024] = {0};
+        recv(sock, buffer, sizeof(buffer), 0);
+        // TODO: Parse game state và update
+    }
+
+    closesocket(sock);
+    WSACleanup();
 }
 
-void GameOnline::HandleHostData()
-{
+void GameOnline::HandleHostData() {
     // Khởi tạo Winsock
     WSADATA wsaData;
     WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -86,8 +120,7 @@ void GameOnline::HandleHostData()
     WSACleanup();
 }
 
-void GameOnline::checkConnect()
-{
+void GameOnline::checkConnect() {
     WSADATA wsaData;
     WSAStartup(MAKEWORD(2, 2), &wsaData);
 
@@ -119,6 +152,7 @@ void GameOnline::checkConnect()
 void GameOnline::ClientUpdate()
 {
 }
+
 void GameOnline::HostUpdate(Uint32 dt)
 {
     if (m_pause)

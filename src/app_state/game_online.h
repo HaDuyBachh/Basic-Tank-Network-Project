@@ -7,6 +7,14 @@
 
 class GameOnline : public Game {
 
+struct InputData {
+    bool up;
+    bool down;
+    bool left;
+    bool right;
+    bool fire;
+};
+
 struct GameState {
         struct EnemyData {
             double pos_x;
