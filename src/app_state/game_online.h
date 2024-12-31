@@ -7,7 +7,7 @@
 #include <vector>
 #include "../objects/object.h"
 
-class GameOnline : public Game
+class GameOnline : public AppState
 {
 
 public:
@@ -74,9 +74,14 @@ public:
     };
 
     GameOnline(const std::string &room_code, bool is_host, const std::vector<std::string> &players);
-    ~GameOnline();
+    virtual ~GameOnline();
 
-    void update(Uint32 dt) override;
+    void update(Uint32 dt);
+    void eventProcess(SDL_Event *ev);
+    AppState *nextState();
+
+    void updateCollider(Uint32 dt);
+    bool finished() const;  
 
     void checkConnect();
     void HandleHostData();
@@ -88,7 +93,48 @@ public:
     std::string GameStateSendData();
     void RecvGameState(const std::string &data);
 
-protected:
+    void loadLevel(std::string path);
+    void clearLevel();
+    void nextLevel();
+    void generateEnemy();
+    void generateBonus();
+    void draw();
+
+    void checkCollisionTankWithLevel(Tank *tank, Uint32 dt);
+    void checkCollisionTwoTanks(Tank *tank1, Tank *tank2, Uint32 dt);
+    void checkCollisionBulletWithLevel(Bullet *bullet);
+    void checkCollisionBulletWithBush(Bullet *bullet);
+    void checkCollisionPlayerBulletsWithEnemy(Player *player, Enemy *enemy);
+    void checkCollisionEnemyBulletsWithPlayer(Enemy *enemy, Player *player);
+    void checkCollisionTwoBullets(Bullet *bullet1, Bullet *bullet2);
+    void checkCollisionPlayerWithBonus(Player *player, Bonus *bonus);
+
+    int m_level_columns_count;
+    int m_level_rows_count;
+    std::vector<std::vector<Object *>> m_level;
+    std::vector<Object *> m_bushes;
+    std::vector<Enemy *> m_enemies;
+    std::vector<Player *> m_players;
+    std::vector<Player *> m_killed_players;
+    std::vector<Bonus *> m_bonuses;
+    Eagle *m_eagle;
+    int m_current_level;
+    int m_player_count;
+    int m_enemy_to_kill;
+    bool m_level_start_screen;
+    bool m_protect_eagle;
+    Uint32 m_level_start_time;
+    Uint32 m_enemy_redy_time;
+    Uint32 m_level_end_time;
+    Uint32 m_protect_eagle_time;
+
+    bool m_game_over;
+    double m_game_over_position;
+    bool m_finished;
+    bool m_pause;
+    int m_enemy_respown_position;
+
+
 private:
     ClientInput m_client_input;
     std::string m_room_code;
