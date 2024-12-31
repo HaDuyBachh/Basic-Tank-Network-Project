@@ -75,7 +75,15 @@ void GameOnline::draw()
         for (auto bush : m_bushes)
             bush->draw();
         for (auto bonus : m_bonuses)
-            bonus->draw();
+            if (m_is_host)
+            {
+                bonus->draw(); // Host uses normal draw with blinking
+            }
+            else
+            {
+                bonus->drawOnline(); // Client always shows bonus
+            }
+            
         m_eagle->draw();
 
         if (m_game_over)
@@ -1475,7 +1483,7 @@ void GameOnline::checkConnect()
 
 void GameOnline::ClientUpdate(Uint32 dt)
 {
-        // kiểm tra va chạm của quả bóng với tường
+    // kiểm tra va chạm của quả bóng với tường
     for (auto enemy : m_enemies)
         for (auto bullet : enemy->bullets)
             checkCollisionBulletWithLevel(bullet);
