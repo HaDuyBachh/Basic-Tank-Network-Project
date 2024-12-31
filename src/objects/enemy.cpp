@@ -129,11 +129,6 @@ void Enemy::updateOnline(Uint32 dt)
     else
     {
         src_rect = moveRect(m_sprite->rect, 0, m_current_frame);
-
-        m_sprite = Engine::getEngine().getSpriteConfig()->getSpriteData(type);
-        clearFlag(TSF_CREATE);
-        setFlag(TSF_LIFE);
-        m_current_frame = 0;
     }
 
     if (testFlag(TSF_FROZEN))

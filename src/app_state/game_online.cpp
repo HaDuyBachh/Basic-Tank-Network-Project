@@ -32,7 +32,7 @@ GameOnline::GameOnline(const std::string &room_code, bool is_host, const std::ve
     m_protect_eagle_time = 0;
     m_enemy_respown_position = 0;
 
-    nextLevel();
+    Game::nextLevel();
 
     if (is_host)
     {
@@ -135,7 +135,8 @@ std::string GameOnline::GameStateSendData()
        << snapshot.current_level << ","
        << (snapshot.game_over ? "1" : "0") << ","
        << std::fixed << std::setprecision(3) << snapshot.game_over_position << ","
-       << (snapshot.eagle_destroyed ? "1" : "0");
+       << (snapshot.eagle_destroyed ? "1" : "0") << ","
+       << m_enemy_to_kill;
 
     // Players section with count
     ss << ":players:" << snapshot.players.size() << ":";
@@ -207,13 +208,17 @@ std::string GameOnline::GameStateSendData()
     return ss.str();
 }
 
-void GameOnline::RecvGameState(const std::string& data) {
-    try {
+void GameOnline::RecvGameState(const std::string &data)
+{
+    try
+    {
         // Clear existing objects
-        for(auto enemy : m_enemies) delete enemy;
+        for (auto enemy : m_enemies)
+            delete enemy;
         m_enemies.clear();
 
-        for(auto bonus : m_bonuses) delete bonus;
+        for (auto bonus : m_bonuses)
+            delete bonus;
         m_bonuses.clear();
 
         std::stringstream ss(data);
@@ -221,14 +226,16 @@ void GameOnline::RecvGameState(const std::string& data) {
 
         // Parse header
         std::getline(ss, header, ':');
-        if(header != "game_state") {
+        if (header != "game_state")
+        {
             std::cout << "Invalid header: " << header << std::endl;
             return;
         }
 
         // Parse room code
         std::getline(ss, room_code, ':');
-        if(room_code != m_room_code) {
+        if (room_code != m_room_code)
+        {
             std::cout << "Wrong room code: " << room_code << std::endl;
             return;
         }
@@ -239,21 +246,26 @@ void GameOnline::RecvGameState(const std::string& data) {
         std::stringstream game_ss(game_data);
         std::string value;
 
-        while(std::getline(game_ss, value, ',')) {
+        while (std::getline(game_ss, value, ','))
+        {
             game_values.push_back(value);
         }
 
-        if(game_values.size() >= 4) {
+        if (game_values.size() >= 5)
+        {
             m_current_level = std::stoi(game_values[0]);
             m_game_over = game_values[1] == "1";
             m_game_over_position = std::stod(game_values[2]);
             bool eagle_destroyed = game_values[3] == "1";
-            if(eagle_destroyed) m_eagle->destroy();
+            m_enemy_to_kill = std::stoi(game_values[4]);
+            if (eagle_destroyed)
+                m_eagle->destroy();
         }
 
         // Parse players section
         std::getline(ss, header, ':');
-        if(header != "players") {
+        if (header != "players")
+        {
             std::cout << "Invalid players section" << std::endl;
             return;
         }
@@ -265,14 +277,17 @@ void GameOnline::RecvGameState(const std::string& data) {
         std::cout << "Players count: " << player_count << std::endl;
 
         // Parse each player
-        for(int i = 0; i < player_count; i++) {
+        for (int i = 0; i < player_count; i++)
+        {
             std::string player_data;
             std::getline(ss, player_data, '#');
-            if(player_data.empty()) continue;
+            if (player_data.empty())
+                continue;
 
             // Split player data and bullets
             size_t semi_pos = player_data.find(';');
-            if(semi_pos == std::string::npos) continue;
+            if (semi_pos == std::string::npos)
+                continue;
 
             std::string stats = player_data.substr(0, semi_pos);
             std::string bullets_data = player_data.substr(semi_pos + 1);
@@ -280,48 +295,55 @@ void GameOnline::RecvGameState(const std::string& data) {
             // Parse player stats
             std::stringstream stats_ss(stats);
             std::vector<std::string> values;
-            
-            while(std::getline(stats_ss, value, ',')) {
+
+            while (std::getline(stats_ss, value, ','))
+            {
                 values.push_back(value);
             }
 
-            if(values.size() >= 7 && i < m_players.size()) {
-                Player* player = m_players[i];
+            if (values.size() >= 7 && i < m_players.size())
+            {
+                Player *player = m_players[i];
                 player->pos_x = std::stod(values[0]);
                 player->pos_y = std::stod(values[1]);
                 player->direction = static_cast<Direction>(std::stoi(values[2]));
-                player->m_fire_time = (values[3] == "1") ? 
-                                    AppConfig::player_reload_time + 1 : 0;
-                if(values[4] == "1") player->setFlag(TSF_DESTROYED);
-                else player->clearFlag(TSF_DESTROYED);
+                player->m_fire_time = (values[3] == "1") ? AppConfig::player_reload_time + 1 : 0;
+                if (values[4] == "1")
+                    player->setFlag(TSF_DESTROYED);
+                else
+                    player->clearFlag(TSF_DESTROYED);
                 player->lives_count = std::stoi(values[5]);
                 player->star_count = std::stoi(values[6]);
 
                 // Parse bullets count
                 semi_pos = bullets_data.find(';');
-                if(semi_pos != std::string::npos) {
+                if (semi_pos != std::string::npos)
+                {
                     int bullet_count = std::stoi(bullets_data.substr(0, semi_pos));
                     std::string bullets = bullets_data.substr(semi_pos + 1);
-                    
+
                     player->bullets.clear();
                     std::stringstream bullets_ss(bullets);
                     std::string bullet_data;
-                    
-                    for(int j = 0; j < bullet_count && 
-                        std::getline(bullets_ss, bullet_data, '|'); j++) {
-                        
+
+                    for (int j = 0; j < bullet_count &&
+                                    std::getline(bullets_ss, bullet_data, '|');
+                         j++)
+                    {
+
                         std::stringstream bullet_ss(bullet_data);
                         std::vector<std::string> bullet_values;
-                        
-                        while(std::getline(bullet_ss, value, ',')) {
+
+                        while (std::getline(bullet_ss, value, ','))
+                        {
                             bullet_values.push_back(value);
                         }
-                        
-                        if(bullet_values.size() >= 5) {
-                            Bullet* bullet = new Bullet(
+
+                        if (bullet_values.size() >= 5)
+                        {
+                            Bullet *bullet = new Bullet(
                                 std::stod(bullet_values[0]),
-                                std::stod(bullet_values[1])
-                            );
+                                std::stod(bullet_values[1]));
                             bullet->direction = static_cast<Direction>(std::stoi(bullet_values[2]));
                             bullet->collide = bullet_values[3] == "1";
                             bullet->increased_damage = bullet_values[4] == "1";
@@ -334,7 +356,8 @@ void GameOnline::RecvGameState(const std::string& data) {
 
         // Parse enemies section
         std::getline(ss, header, ':');
-        if(header != "enemies") {
+        if (header != "enemies")
+        {
             std::cout << "Invalid enemies section" << std::endl;
             return;
         }
@@ -345,61 +368,71 @@ void GameOnline::RecvGameState(const std::string& data) {
         std::cout << "Enemies count: " << enemy_count << std::endl;
 
         // Parse each enemy
-        for(int i = 0; i < enemy_count; i++) {
+        for (int i = 0; i < enemy_count; i++)
+        {
             std::string enemy_data;
             std::getline(ss, enemy_data, '#');
-            if(enemy_data.empty()) continue;
+            if (enemy_data.empty())
+                continue;
 
             size_t semi_pos = enemy_data.find(';');
-            if(semi_pos == std::string::npos) continue;
+            if (semi_pos == std::string::npos)
+                continue;
 
             std::string stats = enemy_data.substr(0, semi_pos);
             std::string bullets_data = enemy_data.substr(semi_pos + 1);
 
             std::stringstream stats_ss(stats);
             std::vector<std::string> values;
-            
-            while(std::getline(stats_ss, value, ',')) {
+
+            while (std::getline(stats_ss, value, ','))
+            {
                 values.push_back(value);
             }
 
-            if(values.size() >= 7) {
-                Enemy* enemy = new Enemy(
+            if (values.size() >= 7)
+            {
+                Enemy *enemy = new Enemy(
                     std::stod(values[0]),
                     std::stod(values[1]),
-                    static_cast<SpriteType>(std::stoi(values[3]))
-                );
+                    static_cast<SpriteType>(std::stoi(values[3])));
                 enemy->direction = static_cast<Direction>(std::stoi(values[2]));
                 enemy->lives_count = std::stoi(values[4]);
-                if(values[5] == "1") enemy->setFlag(TSF_DESTROYED);
-                if(values[6] == "1") enemy->setFlag(TSF_BONUS);
+                if (values[5] == "1")
+                    enemy->setFlag(TSF_DESTROYED);
+                if (values[6] == "1")
+                    enemy->setFlag(TSF_BONUS);
 
                 enemy->forceActiveState();
 
                 // Parse bullets count
                 semi_pos = bullets_data.find(';');
-                if(semi_pos != std::string::npos) {
+                if (semi_pos != std::string::npos)
+                {
                     int bullet_count = std::stoi(bullets_data.substr(0, semi_pos));
                     std::string bullets = bullets_data.substr(semi_pos + 1);
-                    
+
                     std::stringstream bullets_ss(bullets);
                     std::string bullet_data;
-                    
-                    for(int j = 0; j < bullet_count && 
-                        std::getline(bullets_ss, bullet_data, '|'); j++) {
-                        
+
+                    for (int j = 0; j < bullet_count &&
+                                    std::getline(bullets_ss, bullet_data, '|');
+                         j++)
+                    {
+
                         std::stringstream bullet_ss(bullet_data);
                         std::vector<std::string> bullet_values;
-                        
-                        while(std::getline(bullet_ss, value, ',')) {
+
+                        while (std::getline(bullet_ss, value, ','))
+                        {
                             bullet_values.push_back(value);
                         }
-                        
-                        if(bullet_values.size() >= 5) {
-                            Bullet* bullet = new Bullet(
+
+                        if (bullet_values.size() >= 5)
+                        {
+                            Bullet *bullet = new Bullet(
                                 std::stod(bullet_values[0]),
-                                std::stod(bullet_values[1])
-                            );
+                                std::stod(bullet_values[1]));
                             bullet->direction = static_cast<Direction>(std::stoi(bullet_values[2]));
                             bullet->collide = bullet_values[3] == "1";
                             bullet->increased_damage = bullet_values[4] == "1";
@@ -413,7 +446,8 @@ void GameOnline::RecvGameState(const std::string& data) {
 
         // Parse bonuses section
         std::getline(ss, header, ':');
-        if(header != "bonuses") {
+        if (header != "bonuses")
+        {
             std::cout << "Invalid bonuses section" << std::endl;
             return;
         }
@@ -424,24 +458,27 @@ void GameOnline::RecvGameState(const std::string& data) {
         std::cout << "Bonuses count: " << bonus_count << std::endl;
 
         // Parse each bonus
-        for(int i = 0; i < bonus_count; i++) {
+        for (int i = 0; i < bonus_count; i++)
+        {
             std::string bonus_data;
             std::getline(ss, bonus_data, '#');
-            if(bonus_data.empty()) continue;
+            if (bonus_data.empty())
+                continue;
 
             std::stringstream bonus_ss(bonus_data);
             std::vector<std::string> values;
-            
-            while(std::getline(bonus_ss, value, ',')) {
+
+            while (std::getline(bonus_ss, value, ','))
+            {
                 values.push_back(value);
             }
 
-            if(values.size() >= 4) {
-                Bonus* bonus = new Bonus(
+            if (values.size() >= 4)
+            {
+                Bonus *bonus = new Bonus(
                     std::stod(values[0]),
                     std::stod(values[1]),
-                    static_cast<SpriteType>(std::stoi(values[2]))
-                );
+                    static_cast<SpriteType>(std::stoi(values[2])));
                 bonus->to_erase = !(values[3] == "1");
                 m_bonuses.push_back(bonus);
             }
@@ -449,7 +486,8 @@ void GameOnline::RecvGameState(const std::string& data) {
 
         std::cout << "Game state updated successfully" << std::endl;
     }
-    catch(const std::exception& e) {
+    catch (const std::exception &e)
+    {
         std::cout << "Error parsing game state: " << e.what() << std::endl;
     }
 }
@@ -612,11 +650,12 @@ void GameOnline::checkConnect()
 void GameOnline::ClientUpdate(Uint32 dt)
 {
     // Cập nhật tất cả các đối tượng
-    for(auto enemy : m_enemies) {
+    for (auto enemy : m_enemies)
+    {
         // Force enemy to active state for replay
         enemy->spawnAt(enemy->pos_x, enemy->pos_y, enemy->direction, true);
         enemy->updateOnline(dt);
-    }   
+    }
 
     for (auto player : m_players)
     {
@@ -820,8 +859,6 @@ void GameOnline::update(Uint32 dt)
     {
         HostUpdate(dt);
         HandleHostData();
-
-        //RecvGameState(GameStateSendData());
     }
     else if (!m_is_host)
     {

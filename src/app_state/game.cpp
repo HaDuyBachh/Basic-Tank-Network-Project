@@ -606,7 +606,7 @@ void Game::checkCollisionTankWithLevel(Tank *tank, Uint32 dt)
 
     //========================kolizja z granicami mapy========================
     SDL_Rect outside_map_rect;
-    // prostokąt po lewej stronie mapy
+    // hình chữ nhật ở phía bên trái của bản đồ
     outside_map_rect.x = -AppConfig::tile_rect.w;
     outside_map_rect.y = -AppConfig::tile_rect.h;
     outside_map_rect.w = AppConfig::tile_rect.w;
@@ -615,7 +615,7 @@ void Game::checkCollisionTankWithLevel(Tank *tank, Uint32 dt)
     if (intersect_rect.w > 0 && intersect_rect.h > 0)
         tank->collide(intersect_rect);
 
-    // prostokąt po prawej stronie mapy
+    // hình chữ nhật ở phía bên phải của bản đồ
     outside_map_rect.x = AppConfig::map_rect.w;
     outside_map_rect.y = -AppConfig::tile_rect.h;
     outside_map_rect.w = AppConfig::tile_rect.w;
@@ -624,7 +624,7 @@ void Game::checkCollisionTankWithLevel(Tank *tank, Uint32 dt)
     if (intersect_rect.w > 0 && intersect_rect.h > 0)
         tank->collide(intersect_rect);
 
-    // prostokąt po górnej stronie mapy
+    // hình chữ nhật ở phía trên của bản đồ
     outside_map_rect.x = 0;
     outside_map_rect.y = -AppConfig::tile_rect.h;
     outside_map_rect.w = AppConfig::map_rect.w;
@@ -633,7 +633,7 @@ void Game::checkCollisionTankWithLevel(Tank *tank, Uint32 dt)
     if (intersect_rect.w > 0 && intersect_rect.h > 0)
         tank->collide(intersect_rect);
 
-    // prostokąt po dolnej stronie mapy
+    // hình chữ nhật ở phía dưới bản đồ
     outside_map_rect.x = 0;
     outside_map_rect.y = AppConfig::map_rect.h;
     outside_map_rect.w = AppConfig::map_rect.w;
@@ -642,7 +642,7 @@ void Game::checkCollisionTankWithLevel(Tank *tank, Uint32 dt)
     if (intersect_rect.w > 0 && intersect_rect.h > 0)
         tank->collide(intersect_rect);
 
-    //========================kolizja z orzełkiem========================
+    //========================va chạm với đại bàng========================
     intersect_rect = intersectRect(&m_eagle->collision_rect, &pr);
     if (intersect_rect.w > 0 && intersect_rect.h > 0)
         tank->collide(intersect_rect);
@@ -675,7 +675,7 @@ void Game::checkCollisionBulletWithLevel(Bullet *bullet)
     SDL_Rect intersect_rect;
     Object *o;
 
-    //========================kolizja z elementami mapy========================
+    //========================va chạm với các phần tử bản đồ========================
     switch (bullet->direction)
     {
     case D_UP:
@@ -743,12 +743,12 @@ void Game::checkCollisionBulletWithLevel(Bullet *bullet)
             }
         }
 
-    //========================kolizja z granicami mapy========================
+    //========================va chạm với ranh giới bản đồ========================
     if (br->x < 0 || br->y < 0 || br->x + br->w > AppConfig::map_rect.w || br->y + br->h > AppConfig::map_rect.h)
     {
         bullet->destroy();
     }
-    //========================kolizja z orzełkiem========================
+    //========================va chạm với đại bàng========================
     if (m_eagle->type == ST_EAGLE && !m_game_over)
     {
         intersect_rect = intersectRect(&m_eagle->collision_rect, br);
