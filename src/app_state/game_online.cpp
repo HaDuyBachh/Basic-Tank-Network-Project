@@ -1,6 +1,8 @@
 #include "game_online.h"
 #include "../objects/eagle.h"
 #include "../appconfig.h"
+#include "../engine/engine.h"
+#include "scores_online.h"
 #include "scores.h"
 #include "menu.h"
 #include <sstream>
@@ -16,14 +18,15 @@
 #include <windows.h>
 #include <iomanip>
 
-GameOnline::GameOnline(const std::string &room_code, bool is_host, const std::vector<std::string> &players)
+GameOnline::GameOnline(const std::string &room_code, bool is_host, const std::vector<std::string> &players, int level)
 {
+    m_initialized = false;
     m_room_code = room_code;
     m_is_host = is_host;
     m_last_sync_time = 0;
     m_level_columns_count = 0;
     m_level_rows_count = 0;
-    m_current_level = 0;
+    m_current_level = level;
     m_eagle = nullptr;
     m_player_count = 2;
     m_enemy_redy_time = 0;
@@ -83,7 +86,7 @@ void GameOnline::draw()
             {
                 bonus->drawOnline(); // Client always shows bonus
             }
-            
+
         m_eagle->draw();
 
         if (m_game_over)
@@ -290,7 +293,7 @@ AppState *GameOnline::nextState()
         m_players.erase(std::remove_if(m_players.begin(), m_players.end(), [this](Player *p)
                                        {m_killed_players.push_back(p); return true; }),
                         m_players.end());
-        Scores *scores = new Scores(m_killed_players, m_current_level, m_game_over);
+        ScoresOnline *scores = new ScoresOnline(m_killed_players, m_room_code, m_current_level, m_game_over);
         return scores;
     }
     Menu *m = new Menu;
@@ -932,8 +935,8 @@ std::string GameOnline::GameStateSendData()
            << p.lives_count << ","
            << p.star_count << ","
            << p.score << ";"
-           
-        << p.bullets.size() << ";"; // Add bullet count
+
+           << p.bullets.size() << ";"; // Add bullet count
         for (auto &b : p.bullets)
         {
             if (std::isnan(b.pos_x) || std::isnan(b.pos_y))
@@ -1485,6 +1488,13 @@ void GameOnline::checkConnect()
 
 void GameOnline::ClientUpdate(Uint32 dt)
 {
+    if (!m_initialized) {
+        if (!m_enemies.empty() || m_enemy_to_kill > 0) {
+            m_initialized = true;
+        }
+        return;
+    }
+
     // kiểm tra va chạm của quả bóng với tường
     for (auto enemy : m_enemies)
         for (auto bullet : enemy->bullets)
@@ -1514,6 +1524,93 @@ void GameOnline::ClientUpdate(Uint32 dt)
 
     for (auto bush : m_bushes)
         bush->update(dt);
+
+    if (m_enemies.empty() && m_enemy_to_kill <= 0)
+    {
+        m_level_end_time += dt;
+        if (m_level_end_time > AppConfig::level_end_time)
+            m_finished = true;
+    }
+
+    if (m_players.empty() && !m_game_over)
+    {
+        m_eagle->destroy();
+        m_game_over_position = AppConfig::map_rect.h;
+        m_game_over = true;
+    }
+
+    if (m_game_over)
+    {
+        if (m_game_over_position < 10)
+            m_finished = true;
+        else
+            m_game_over_position -= AppConfig::game_over_entry_speed * dt;
+    }
+
+    if (m_protect_eagle)
+    {
+        m_protect_eagle_time += dt;
+        if (m_protect_eagle_time > AppConfig::protect_eagle_time)
+        {
+            m_protect_eagle = false;
+            m_protect_eagle_time = 0;
+            for (int i = 0; i < 3; i++)
+            {
+                if (m_level.at(m_level_rows_count - i - 1).at(11) != nullptr)
+                    delete m_level.at(m_level_rows_count - i - 1).at(11);
+                m_level.at(m_level_rows_count - i - 1).at(11) = new Brick(11 * AppConfig::tile_rect.w, (m_level_rows_count - i - 1) * AppConfig::tile_rect.h);
+
+                if (m_level.at(m_level_rows_count - i - 1).at(14) != nullptr)
+                    delete m_level.at(m_level_rows_count - i - 1).at(14);
+                m_level.at(m_level_rows_count - i - 1).at(14) = new Brick(14 * AppConfig::tile_rect.w, (m_level_rows_count - i - 1) * AppConfig::tile_rect.h);
+            }
+            for (int i = 12; i < 14; i++)
+            {
+                if (m_level.at(m_level_rows_count - 3).at(i) != nullptr)
+                    delete m_level.at(m_level_rows_count - 3).at(i);
+                m_level.at(m_level_rows_count - 3).at(i) = new Brick(i * AppConfig::tile_rect.w, (m_level_rows_count - 3) * AppConfig::tile_rect.h);
+            }
+        }
+
+        if (m_protect_eagle && m_protect_eagle_time > AppConfig::protect_eagle_time / 4 * 3 && m_protect_eagle_time / AppConfig::bonus_blink_time % 2)
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                if (m_level.at(m_level_rows_count - i - 1).at(11) != nullptr)
+                    delete m_level.at(m_level_rows_count - i - 1).at(11);
+                m_level.at(m_level_rows_count - i - 1).at(11) = new Brick(11 * AppConfig::tile_rect.w, (m_level_rows_count - i - 1) * AppConfig::tile_rect.h);
+
+                if (m_level.at(m_level_rows_count - i - 1).at(14) != nullptr)
+                    delete m_level.at(m_level_rows_count - i - 1).at(14);
+                m_level.at(m_level_rows_count - i - 1).at(14) = new Brick(14 * AppConfig::tile_rect.w, (m_level_rows_count - i - 1) * AppConfig::tile_rect.h);
+            }
+            for (int i = 12; i < 14; i++)
+            {
+                if (m_level.at(m_level_rows_count - 3).at(i) != nullptr)
+                    delete m_level.at(m_level_rows_count - 3).at(i);
+                m_level.at(m_level_rows_count - 3).at(i) = new Brick(i * AppConfig::tile_rect.w, (m_level_rows_count - 3) * AppConfig::tile_rect.h);
+            }
+        }
+        else if (m_protect_eagle)
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                if (m_level.at(m_level_rows_count - i - 1).at(11) != nullptr)
+                    delete m_level.at(m_level_rows_count - i - 1).at(11);
+                m_level.at(m_level_rows_count - i - 1).at(11) = new Object(11 * AppConfig::tile_rect.w, (m_level_rows_count - i - 1) * AppConfig::tile_rect.h, ST_STONE_WALL);
+
+                if (m_level.at(m_level_rows_count - i - 1).at(14) != nullptr)
+                    delete m_level.at(m_level_rows_count - i - 1).at(14);
+                m_level.at(m_level_rows_count - i - 1).at(14) = new Object(14 * AppConfig::tile_rect.w, (m_level_rows_count - i - 1) * AppConfig::tile_rect.h, ST_STONE_WALL);
+            }
+            for (int i = 12; i < 14; i++)
+            {
+                if (m_level.at(m_level_rows_count - 3).at(i) != nullptr)
+                    delete m_level.at(m_level_rows_count - 3).at(i);
+                m_level.at(m_level_rows_count - 3).at(i) = new Object(i * AppConfig::tile_rect.w, (m_level_rows_count - 3) * AppConfig::tile_rect.h, ST_STONE_WALL);
+            }
+        }
+    }
 }
 
 void GameOnline::HostUpdate(Uint32 dt)
