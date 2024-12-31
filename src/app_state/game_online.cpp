@@ -976,6 +976,24 @@ std::string GameOnline::GameStateSendData()
            << (b.is_active ? "1" : "0") << "#";
     }
 
+    // Add brick state section
+    ss << "brick_sprites:";
+    for (int i = 0; i < m_level_rows_count; i++)
+    {
+        for (int j = 0; j < m_level_columns_count; j++)
+        {
+            if (m_level[i][j] != nullptr && m_level[i][j]->type == ST_BRICK_WALL)
+            {
+                auto brick = m_level[i][j];
+                ss << i << "," << j << ","
+                   << brick->src_rect.x << ","
+                   << brick->src_rect.y << ","
+                   << brick->src_rect.w << ","
+                   << brick->src_rect.h << "#";
+            }
+        }
+    }
+
     return ss.str();
 }
 
@@ -1255,6 +1273,43 @@ void GameOnline::RecvGameState(const std::string &data)
             }
         }
 
+        // Parse bricks section
+        std::getline(ss, header, ':');
+        if (header == "brick_sprites")
+        {
+            std::string brick_data;
+            while (std::getline(ss, brick_data, '#'))
+            {
+                if (brick_data.empty())
+                    continue;
+
+                std::stringstream brick_ss(brick_data);
+                std::vector<std::string> values;
+                std::string value;
+
+                while (std::getline(brick_ss, value, ','))
+                {
+                    values.push_back(value);
+                }
+
+                if (values.size() >= 6)
+                {
+                    int row = std::stoi(values[0]);
+                    int col = std::stoi(values[1]);
+
+                    if (m_level[row][col] != nullptr &&
+                        m_level[row][col]->type == ST_BRICK_WALL)
+                    {
+                        m_level[row][col]->src_rect = {
+                            std::stoi(values[2]),
+                            std::stoi(values[3]),
+                            std::stoi(values[4]),
+                            std::stoi(values[5])};
+                    }
+                }
+            }
+        }
+
         std::cout << "Game state updated successfully" << std::endl;
     }
     catch (const std::exception &e)
@@ -1420,6 +1475,7 @@ void GameOnline::checkConnect()
 
 void GameOnline::ClientUpdate(Uint32 dt)
 {
+    updateCollider(dt);
     // Cập nhật tất cả các đối tượng
     for (auto enemy : m_enemies)
     {
@@ -1436,11 +1492,6 @@ void GameOnline::ClientUpdate(Uint32 dt)
     for (auto bonus : m_bonuses)
         bonus->update(dt);
     m_eagle->update(dt);
-
-    for (auto row : m_level)
-        for (auto item : row)
-            if (item != nullptr)
-                item->update(dt);
 
     for (auto bush : m_bushes)
         bush->update(dt);
@@ -1490,7 +1541,7 @@ void GameOnline::HostUpdate(Uint32 dt)
         else
             player->update(dt);
     }
-        
+
     for (auto bonus : m_bonuses)
         bonus->update(dt);
     m_eagle->update(dt);

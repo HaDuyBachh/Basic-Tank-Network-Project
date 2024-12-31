@@ -20,7 +20,17 @@ public:
         bool fire;
     };
 
-    // struct để lưu trữ snapshot của game
+    // Brick states
+    struct BrickData
+    {
+        int row;
+        int col;
+        int state_code;
+        int collision_count;
+        bool to_erase;
+    };
+
+    // Bonus states
     struct BonusData
     {
         double pos_x;
@@ -62,11 +72,13 @@ public:
         std::vector<BulletSnapshot> bullets;
     };
 
+    // struct để lưu trữ snapshot của game
     struct GameSnapshot
     {
         std::vector<PlayerSnapshot> players;
         std::vector<EnemySnapshot> enemies;
         std::vector<BonusData> bonuses;
+        std::vector<BrickData> bricks;
         bool eagle_destroyed;
         int current_level;
         bool game_over;
@@ -81,7 +93,7 @@ public:
     AppState *nextState();
 
     void updateCollider(Uint32 dt);
-    bool finished() const;  
+    bool finished() const;
 
     void checkConnect();
     void HandleHostData();
@@ -133,7 +145,6 @@ public:
     bool m_finished;
     bool m_pause;
     int m_enemy_respown_position;
-
 
 private:
     ClientInput m_client_input;
