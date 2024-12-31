@@ -40,6 +40,7 @@ struct RoomInfo
     std::vector<std::string> players;
     std::string host;
     bool is_playing;
+    int selected_level;
 
     RoomInfo() : is_playing(false) {}
     std::vector<struct sockaddr_in> player_addrs;
@@ -92,6 +93,40 @@ void writeRoomFile(const std::string &room_code, const std::string &host, const 
         room_file << "=== End of File ===" << std::endl;
         room_file.close();
     }
+}
+
+std::string handleUpdateLevel(const std::string &room_code, int level)
+{
+    pthread_mutex_lock(&rooms_mutex);
+
+    if (rooms.find(room_code) == rooms.end())
+    {
+        pthread_mutex_unlock(&rooms_mutex);
+        return "ROOM_NOT_FOUND";
+    }
+
+    auto &room = rooms[room_code];
+    room.selected_level = level;
+
+    pthread_mutex_unlock(&rooms_mutex);
+    return "OK";
+}
+
+std::string handleGetLevel(const std::string &room_code)
+{
+    pthread_mutex_lock(&rooms_mutex);
+
+    if (rooms.find(room_code) == rooms.end())
+    {
+        pthread_mutex_unlock(&rooms_mutex);
+        return "ROOM_NOT_FOUND";
+    }
+
+    auto &room = rooms[room_code];
+    std::string response = std::to_string(room.selected_level);
+
+    pthread_mutex_unlock(&rooms_mutex);
+    return response;
 }
 
 // Truyền dữ liệu rặng game đã bắt đầu
@@ -552,6 +587,22 @@ void *handleTCPClient(void *arg)
         {
             response = "game_state:" + room_code + ":";
         }
+    }
+    else if (request.find("update_level:") == 0)
+    {
+        // Format: update_level:room_code:level
+        size_t first_colon = request.find(':');
+        size_t second_colon = request.find(':', first_colon + 1);
+        std::string room_code = request.substr(first_colon + 1,
+                                               second_colon - first_colon - 1);
+        int level = std::stoi(request.substr(second_colon + 1));
+        response = handleUpdateLevel(room_code, level);
+    }
+    else if (request.find("get_level:") == 0)
+    {
+        // Format: get_level:room_code
+        std::string room_code = request.substr(10);
+        response = handleGetLevel(room_code);
     }
     else
     {
