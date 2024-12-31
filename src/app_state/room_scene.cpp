@@ -9,7 +9,7 @@
 
 RoomScene::RoomScene(bool isHost)
 {
-    m_selected_level = 1;
+    m_selected_level = 2;
     m_room_code = "";
     m_current_room_code = "";
     m_finished = false;
@@ -33,7 +33,7 @@ void RoomScene::renderLevelSelector(int yPos)
     {
         SDL_Point controls_pos = {160, yPos + 30};
         renderer->drawText(&controls_pos, "Press UP/DOWN to change level",
-                           {200, 200, 200, 255}, 0.3);
+                           {200, 200, 200, 255}, 3);
     }
 }
 
@@ -483,7 +483,7 @@ AppState *RoomScene::nextState()
     {
         // Truyền level được chọn vào GameOnline
         return new GameOnline(m_current_room_code, m_is_host,
-                              m_players_in_room, m_selected_level);
+                              m_players_in_room, m_selected_level-1);
     }
     return nullptr;
 }
