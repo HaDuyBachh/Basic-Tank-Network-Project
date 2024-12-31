@@ -1484,7 +1484,13 @@ void GameOnline::HostUpdate(Uint32 dt)
     for (auto enemy : m_enemies)
         enemy->update(dt);
     for (auto player : m_players)
-        player->update(dt);
+    {
+        if (player->player_keys == AppConfig::player_keys.at(1))
+            player->updateWithInput(dt, m_client_input.up, m_client_input.down, m_client_input.left, m_client_input.right, m_client_input.fire);
+        else
+            player->update(dt);
+    }
+        
     for (auto bonus : m_bonuses)
         bonus->update(dt);
     m_eagle->update(dt);
@@ -1624,9 +1630,9 @@ void GameOnline::update(Uint32 dt)
         HostUpdate(dt);
         HandleHostData();
     }
-    // else if (!m_is_host)
-    // {
-    //     HandleClientData();
-    //     ClientUpdate(dt);
-    // }
+    else if (!m_is_host)
+    {
+        HandleClientData();
+        ClientUpdate(dt);
+    }
 }
