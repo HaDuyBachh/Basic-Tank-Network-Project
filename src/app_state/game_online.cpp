@@ -38,7 +38,8 @@ GameOnline::GameOnline(const std::string &room_code, bool is_host, const std::ve
 
     nextLevel();
 
-    if (is_host)
+    // if (!is_host)
+    if (true)
     {
         AllocConsole();
         freopen("CONOUT$", "w", stdout);
@@ -293,7 +294,8 @@ AppState *GameOnline::nextState()
         m_players.erase(std::remove_if(m_players.begin(), m_players.end(), [this](Player *p)
                                        {m_killed_players.push_back(p); return true; }),
                         m_players.end());
-        ScoresOnline *scores = new ScoresOnline(m_killed_players, m_room_code, m_current_level, m_game_over);
+
+        ScoresOnline *scores = new ScoresOnline(m_killed_players, m_room_code , m_current_level, m_game_over);
         return scores;
     }
     Menu *m = new Menu;
@@ -844,6 +846,7 @@ GameOnline::GameSnapshot GameOnline::captureGameState()
         p_snapshot.is_destroyed = player->testFlag(TSF_DESTROYED);
         p_snapshot.lives_count = player->lives_count;
         p_snapshot.star_count = player->star_count;
+        p_snapshot.score = player->score;
 
         // Capture player's bullets
         for (auto bullet : player->bullets)
@@ -934,9 +937,9 @@ std::string GameOnline::GameStateSendData()
            << (p.is_destroyed ? "1" : "0") << ","
            << p.lives_count << ","
            << p.star_count << ","
-           << p.score << ";"
+           << p.score << ";";
 
-           << p.bullets.size() << ";"; // Add bullet count
+        ss << p.bullets.size() << ";"; // Add bullet count
         for (auto &b : p.bullets)
         {
             if (std::isnan(b.pos_x) || std::isnan(b.pos_y))
@@ -1796,10 +1799,14 @@ void GameOnline::update(Uint32 dt)
     {
         HostUpdate(dt);
         HandleHostData();
+
+        std::cout<< "player point: " << m_players[0]->score << " " << m_players[1]->score << endl;
     }
     else if (!m_is_host)
     {
         HandleClientData();
         ClientUpdate(dt);
+
+        std::cout<< "player point: " << m_players[0]->score << " " << m_players[1]->score << endl;
     }
 }
