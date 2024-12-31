@@ -930,9 +930,10 @@ std::string GameOnline::GameStateSendData()
            << (p.is_firing ? "1" : "0") << ","
            << (p.is_destroyed ? "1" : "0") << ","
            << p.lives_count << ","
-           << p.star_count << ";"
-           << p.bullets.size() << ";"; // Add bullet count
-
+           << p.star_count << ","
+           << p.score << ";"
+           
+        << p.bullets.size() << ";"; // Add bullet count
         for (auto &b : p.bullets)
         {
             if (std::isnan(b.pos_x) || std::isnan(b.pos_y))
@@ -1098,7 +1099,7 @@ void GameOnline::RecvGameState(const std::string &data)
                 values.push_back(value);
             }
 
-            if (values.size() >= 7 && i < m_players.size())
+            if (values.size() >= 8 && i < m_players.size())
             {
                 Player *player = m_players[i];
                 player->pos_x = std::stod(values[0]);
@@ -1111,6 +1112,7 @@ void GameOnline::RecvGameState(const std::string &data)
                     player->clearFlag(TSF_DESTROYED);
                 player->lives_count = std::stoi(values[5]);
                 player->star_count = std::stoi(values[6]);
+                player->score = std::stoi(values[7]);
 
                 // Parse bullets count
                 semi_pos = bullets_data.find(';');

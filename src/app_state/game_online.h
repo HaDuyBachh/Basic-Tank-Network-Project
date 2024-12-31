@@ -57,6 +57,7 @@ public:
         bool is_destroyed;
         int lives_count;
         int star_count;
+        int score;
         std::vector<BulletSnapshot> bullets;
     };
 
