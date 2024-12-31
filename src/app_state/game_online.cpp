@@ -134,7 +134,7 @@ void GameOnline::updateCollider(Uint32 dt)
         for (en2 = en1 + 1; en2 != m_enemies.end(); en2++)
             checkCollisionTwoTanks(*en1, *en2, dt);
 
-    // kiểm tra va chạm của quả bóng với cấp độ
+    // kiểm tra va chạm của quả bóng với tường
     for (auto enemy : m_enemies)
         for (auto bullet : enemy->bullets)
             checkCollisionBulletWithLevel(bullet);
@@ -1475,7 +1475,16 @@ void GameOnline::checkConnect()
 
 void GameOnline::ClientUpdate(Uint32 dt)
 {
-    updateCollider(dt);
+        // kiểm tra va chạm của quả bóng với tường
+    for (auto enemy : m_enemies)
+        for (auto bullet : enemy->bullets)
+            checkCollisionBulletWithLevel(bullet);
+    for (auto player : m_players)
+        for (auto bullet : player->bullets)
+        {
+            checkCollisionBulletWithLevel(bullet);
+            checkCollisionBulletWithBush(bullet);
+        }
     // Cập nhật tất cả các đối tượng
     for (auto enemy : m_enemies)
     {
