@@ -604,6 +604,36 @@ void *handleTCPClient(void *arg)
         std::string room_code = request.substr(10);
         response = handleGetLevel(room_code);
     }
+    else if (request.find("save_score:") == 0)
+    {
+        // Format: save_score:room_code:level:host_name:host_score:client_name:client_score
+        std::stringstream ss(request.substr(11));
+        std::string room_code, level, main_name, main_score, coop_name, coop_score;
+
+        std::getline(ss, room_code, ':');
+        std::getline(ss, level, ':');
+        std::getline(ss, main_name, ':');
+        std::getline(ss, main_score, ':');
+        std::getline(ss, coop_name, ':');
+        std::getline(ss, coop_score);
+
+        // Save to file
+        std::string filename = "scores/" + main_name + ".txt";
+        std::ofstream file(filename, std::ios::app);
+        if (file.is_open())
+        {
+            time_t now = time(0);
+            tm *ltm = localtime(&now);
+
+            file << " Room: " << room_code << " Level:" << level
+                 << " Host:" << main_name << " Score:" << main_score
+                 << " Client:" << coop_name << " Score:" << coop_score
+                 << " Date:" << ltm->tm_mday << "/" << ltm->tm_mon + 1 << "/" << ltm->tm_year + 1900 << "\n";
+
+            file.close();
+            response = "OK";
+        }
+    }
     else
     {
         std::cout << "Unknown: " << request << std::endl;
