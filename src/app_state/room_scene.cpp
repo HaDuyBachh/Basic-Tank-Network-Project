@@ -7,7 +7,7 @@
 #include <winsock2.h>
 #include "../appconfig.h"
 
-RoomScene::RoomScene(bool isHost)
+RoomScene::RoomScene(bool isHost,const std::string &username)
 {
     m_selected_level = 2;
     m_room_code = "";
@@ -17,6 +17,8 @@ RoomScene::RoomScene(bool isHost)
     m_room_joined = false;
     m_is_host = isHost;
     m_current_field = 0;
+    m_username = username;
+    
 }
 
 void RoomScene::renderLevelSelector(int yPos)
@@ -482,8 +484,9 @@ AppState *RoomScene::nextState()
     if (m_room_joined && m_finished)
     {
         // Truyền level được chọn vào GameOnline
-        return new GameOnline(m_current_room_code, m_is_host,
-                              m_players_in_room, m_selected_level-1);
+        m_selected_level-=1;
+        return new GameOnline(m_username, m_current_room_code, m_is_host,
+                              m_players_in_room, m_selected_level);
     }
     return nullptr;
 }

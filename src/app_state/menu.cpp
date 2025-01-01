@@ -149,9 +149,9 @@ AppState* Menu::nextState() {
             case 0:
                 return nullptr;
             case 1: // Create Room
-                return new RoomScene(true);
+                return new RoomScene(true,s_logged_in_username);
             case 2: // Join Room
-                return new RoomScene(false);    
+                return new RoomScene(false,s_logged_in_username);    
             case 3:// Join Room
                 return new Game(1);
             case 4: // Logout

@@ -86,7 +86,7 @@ public:
         double game_over_position;
     };
 
-    GameOnline(const std::string &room_code, bool is_host, const std::vector<std::string> &players, int level);
+    GameOnline(const std::string username, const std::string &room_code, bool is_host, const std::vector<std::string> &players, int level);
     virtual ~GameOnline();
 
     void update(Uint32 dt);
@@ -146,6 +146,7 @@ public:
     bool m_finished;
     bool m_pause;
     int m_enemy_respown_position;
+    std::string m_username;
 
 private:
     bool m_initialized;

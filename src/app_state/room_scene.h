@@ -27,7 +27,7 @@ private:
     bool checkGameStarted();
 
 public:
-    RoomScene(bool isHost = true); // isHost: true để tạo phòng, false để join phòng
+    RoomScene(bool isHost = true,const std::string &username = ""); // isHost: true để tạo phòng, false để join phòng
     ~RoomScene();
 
     virtual void draw() override;
@@ -39,4 +39,5 @@ public:
     void sendLevelUpdate();
     void checkLevelUpdate();
     int m_selected_level;
+    std::string m_username;
 };

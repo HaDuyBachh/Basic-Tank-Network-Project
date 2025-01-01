@@ -18,7 +18,7 @@
 #include <windows.h>
 #include <iomanip>
 
-GameOnline::GameOnline(const std::string &room_code, bool is_host, const std::vector<std::string> &players, int level)
+GameOnline::GameOnline(const std::string username, const std::string &room_code, bool is_host, const std::vector<std::string> &players, int level)
 {
     m_initialized = false;
     m_room_code = room_code;
@@ -35,6 +35,7 @@ GameOnline::GameOnline(const std::string &room_code, bool is_host, const std::ve
     m_protect_eagle = false;
     m_protect_eagle_time = 0;
     m_enemy_respown_position = 0;
+    m_username = username;
 
     nextLevel();
 
@@ -295,7 +296,7 @@ AppState *GameOnline::nextState()
                                        {m_killed_players.push_back(p); return true; }),
                         m_players.end());
 
-        ScoresOnline *scores = new ScoresOnline(m_killed_players, m_room_code , m_current_level, m_game_over);
+        ScoresOnline *scores = new ScoresOnline(m_username, m_is_host, m_killed_players, m_room_code , m_current_level, m_game_over);
         return scores;
     }
     Menu *m = new Menu;

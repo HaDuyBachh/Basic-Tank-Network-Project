@@ -7,11 +7,20 @@
 #include <fstream>
 #include <ctime>
 #include <sstream>
+#include <winsock2.h>
+#include <windows.h>
 
-ScoresOnline::ScoresOnline(std::vector<Player *> players, const std::string &room_code,
-                           int level, bool game_over)
+ScoresOnline::ScoresOnline(const std::string &username, bool is_host, std::vector<Player *> players,
+                           const std::string &room_code, int level, bool game_over)
+    : m_username(username),
+      m_is_host(is_host),
+      m_players(players),
+      m_room_code(room_code),
+      m_level(level),
+      m_game_over(game_over)
 {
     m_players = players;
+    m_is_host = is_host;
     m_room_code = room_code;
     m_level = level;
     m_game_over = game_over;
@@ -19,6 +28,7 @@ ScoresOnline::ScoresOnline(std::vector<Player *> players, const std::string &roo
     m_score_counter_run = true;
     m_score_counter = 0;
     m_max_score = 0;
+    m_username = username;
 
     // Setup players
     for (auto player : m_players)
@@ -36,28 +46,81 @@ ScoresOnline::ScoresOnline(std::vector<Player *> players, const std::string &roo
     }
 
     // Save scores to files
-    //saveScores();
+    // saveScores();
+}
+
+ScoresOnline::~ScoresOnline()
+{
 }
 
 void ScoresOnline::saveScores()
 {
-    time_t now = time(0);
-    tm *ltm = localtime(&now);
+    WSADATA wsaData;
+    WSAStartup(MAKEWORD(2, 2), &wsaData);
 
-    for (auto player : m_players)
+    SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    struct sockaddr_in server_addr;
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(8888);
+    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+    if (connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) == 0)
     {
-        std::string username = Menu::getLoggedInUsername();
-        std::string filename = username + ".txt";
+        std::stringstream ss;
+        // Format: save_score:room_code:level:host_name:host_score:client_name:client_score
+        ss << "save_score:" << m_room_code << ":" << m_level << ":";
 
-        std::ofstream file(filename, std::ios::app);
-        if (file.is_open())
+        // Find host (player 0) and client (player 1)
+        Player *host = nullptr;
+        Player *client = nullptr;
+
+        for (auto player : m_players)
         {
-            file << ltm->tm_mday << "/" << ltm->tm_mon + 1 << "/"
-                 << ltm->tm_year + 1900 << " - Level: " << m_level
-                 << " - Score: " << player->score << "\n";
-            file.close();
+            if (player->player_keys == AppConfig::player_keys.at(0))
+            {
+                host = player;
+            }
+            else if (player->player_keys == AppConfig::player_keys.at(1))
+            {
+                client = player;
+            }
         }
+
+        if (m_is_host)
+        {
+            if (host != nullptr)
+                ss << m_username << ":" << host->score << ":";
+            else
+                ss << "unknown:0:";
+
+            if (client != nullptr)
+                ss << m_username << ":" << client->score;
+            else
+                ss << "unknown:0";
+        }
+        else
+        {
+            if (client != nullptr)
+                ss << m_username << ":" << client->score;
+            else
+                ss << "unknown:0";
+
+            if (host != nullptr)
+                ss << m_username << ":" << host->score << ":";
+            else
+                ss << "unknown:0:";
+        }
+
+        std::string request = ss.str();
+        send(sock, request.c_str(), request.length(), 0);
+
+        // Get response
+        char buffer[1024] = {0};
+        recv(sock, buffer, sizeof(buffer), 0);
     }
+
+    closesocket(sock);
+    WSACleanup();
 }
 
 void ScoresOnline::draw()
