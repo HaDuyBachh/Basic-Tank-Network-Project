@@ -12,19 +12,19 @@ HistoryScene::HistoryScene(const std::string &username)
     m_scroll_offset = 0;
     m_finished = false;
 
-    // Read history from file using same format as server
-    std::string filename = "scores/" + username + ".txt";
-    std::ifstream file(filename);
+    // // Read history from file using same format as server
+    // std::string filename = "scores/" + username + ".txt";
+    // std::ifstream file(filename);
 
-    if (file.is_open())
-    {
-        std::string line;
-        while (std::getline(file, line))
-        {
-            m_history_lines.push_back(line);
-        }
-        file.close();
-    }
+    // if (file.is_open())
+    // {
+    //     std::string line;
+    //     while (std::getline(file, line))
+    //     {
+    //         m_history_lines.push_back(line);
+    //     }
+    //     file.close();
+    // }
 
     HandleHistoryData(username);
 }

@@ -123,7 +123,7 @@ void Tank::update(Uint32 dt)
         if(m_frozen_time > AppConfig::tank_frozen_time) clearFlag(TSF_FROZEN);
     }
 
-    if(m_sprite->frames_count > 1 && (testFlag(TSF_LIFE) ? speed > 0 : true)) //brak animacji jeśli czołg nie prógbuje jechać
+    if(m_sprite->frames_count > 1 && (testFlag(TSF_LIFE) ? speed > 0 : true)) //không có hoạt ảnh nếu xe tăng không muốn di chuyển
     {
         m_frame_display_time += dt;
         if(m_frame_display_time > (testFlag(TSF_MENU)  ? m_sprite->frame_duration / 2 : m_sprite->frame_duration))
@@ -151,11 +151,12 @@ void Tank::update(Uint32 dt)
     }
 
 
-    // Obsługa pocisku
+    // Xử lý tên lửa
     for(auto bullet : bullets) bullet->update(dt);
     bullets.erase(std::remove_if(bullets.begin(), bullets.end(), [](Bullet*b){if(b->to_erase) {delete b; return true;} return false;}), bullets.end());
 }
 
+//Fire bắn đại ra và lưu đạn vào danh sách đạn của tank để xác định xem là đạn của kẻ thù hay của người chơi
 Bullet* Tank::fire()
 {
     if(!testFlag(TSF_LIFE)) return nullptr;
@@ -198,6 +199,7 @@ Bullet* Tank::fire()
     return nullptr;
 }
 
+//Collision di chuyển cùng xe tank
 SDL_Rect Tank::nextCollisionRect(Uint32 dt)
 {
     if(speed == 0) return collision_rect;
@@ -266,7 +268,7 @@ void Tank::setDirection(Direction d)
 
 void Tank::collide(SDL_Rect &intersect_rect)
 {
-    if(intersect_rect.w > intersect_rect.h) // kolizja od góry lub dołu
+    if(intersect_rect.w > intersect_rect.h) // va chạm từ trên xuống dưới
     {
         if((direction == D_UP && intersect_rect.y <= collision_rect.y) ||
                 (direction == D_DOWN && (intersect_rect.y + intersect_rect.h) >= (collision_rect.y + collision_rect.h)))

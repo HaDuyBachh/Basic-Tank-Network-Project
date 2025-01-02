@@ -34,6 +34,8 @@ Menu::Menu()
 {
     // Kiểm tra trạng thái đăng nhập để hiển thị menu phù hợp
     if (s_is_logged_in) {
+        // Khi người dùng đã đăng nhập
+        ///m_menu_texts : thể hiện cho các 
         m_menu_texts.clear();
         m_menu_texts.push_back("Welcome " + s_logged_in_username);
         m_menu_texts.push_back("Create Room");
@@ -43,6 +45,7 @@ Menu::Menu()
         m_menu_texts.push_back("Logout");
         m_menu_texts.push_back("Exit");
     } else {
+        // Khi người dùng chưa đăng nhập
         m_menu_texts.push_back("Sign In");
         m_menu_texts.push_back("Sign Up");
         m_menu_texts.push_back("IP Config");
@@ -69,6 +72,7 @@ Menu::~Menu()
     delete m_tank_pointer;
 }
 
+//render ra
 void Menu::draw()
 {
     Renderer* renderer = Engine::getEngine().getRenderer();
@@ -87,6 +91,8 @@ void Menu::draw()
     
     // Hiển thị tất cả menu items, kể cả khi đã đăng nhập
     for(auto text : m_menu_texts) {
+
+                        x   y
         text_start = {160, (i + 1) * 32 + 120};
         
         // Nếu là welcome message thì đổi màu
@@ -111,6 +117,8 @@ void Menu::update(Uint32 dt)
 
 void Menu::eventProcess(SDL_Event *ev)
 {
+    //Nếu mà có key nào bấm xuống
+    //m_tank_pointer dùng highlight text cho menu
     if(ev->type == SDL_KEYDOWN)
     {
         if(ev->key.keysym.sym == SDLK_UP)
@@ -133,6 +141,7 @@ void Menu::eventProcess(SDL_Event *ev)
         {
             m_finished = true;
         }
+        ///Thoát thì gắn = -1
         else if(ev->key.keysym.sym == SDLK_ESCAPE)
         {
             m_menu_index = -1;

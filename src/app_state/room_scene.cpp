@@ -55,11 +55,12 @@ void RoomScene::draw()
     renderer->drawRect(&AppConfig::map_rect, {0, 0, 0, 255}, true);
     renderer->drawRect(&AppConfig::status_rect, {0, 0, 0, 255}, true);
 
-    // Title
+    // Title khi chưa create hoặc join room
     SDL_Point text_pos = {160, 50};
     renderer->drawText(&text_pos, m_is_host ? "CREATE ROOM" : "JOIN ROOM",
                        {255, 255, 255, 255}, 2);
 
+    //Sau khi đã vào 1 phòng nào đó
     if (!m_room_joined)
     {
         // Room code input

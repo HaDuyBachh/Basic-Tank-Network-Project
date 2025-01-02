@@ -42,7 +42,7 @@ GameOnline::GameOnline(const std::string username, const std::string &room_code,
 
     nextLevel();
 
-    // if (!is_host)
+    // console
     if (true)
     {
         AllocConsole();
@@ -63,6 +63,7 @@ void GameOnline::draw()
     Renderer *renderer = engine.getRenderer();
     renderer->clear();
 
+    // do update chịu tránh nhiệm quản lí logic thời gian
     if (m_level_start_screen)
     {
         std::string level_name = "STAGE " + Engine::intToString(m_current_level);
@@ -71,6 +72,8 @@ void GameOnline::draw()
     else
     {
         renderer->drawRect(&AppConfig::map_rect, {0, 0, 0, 0}, true);
+
+        //render ra tường của game
         for (auto row : m_level)
             for (auto item : row)
                 if (item != nullptr)
@@ -102,11 +105,11 @@ void GameOnline::draw()
             renderer->drawText(&pos, AppConfig::game_over_text, {255, 10, 10, 255});
         }
 
-        //===========Status gry===========
+        //===========Game status===========
         SDL_Rect src = engine.getSpriteConfig()->getSpriteData(ST_LEFT_ENEMY)->rect;
         SDL_Rect dst;
         SDL_Point p_dst;
-        // wrogowie do zabicia
+        // kẻ thù để giết
         for (int i = 0; i < m_enemy_to_kill; i++)
         {
             dst = {AppConfig::status_rect.x + 8 + src.w * (i % 2), 5 + src.h * (i / 2), src.w, src.h};
@@ -207,6 +210,7 @@ void GameOnline::eventProcess(SDL_Event *ev)
             m_current_level -= 2;
             m_finished = true;
             break;
+        //hiển thị debug
         case SDLK_t:
             AppConfig::show_enemy_target = !AppConfig::show_enemy_target;
             break;
@@ -302,7 +306,7 @@ AppState *GameOnline::nextState()
         ScoresOnline *scores = new ScoresOnline(m_username, m_is_host, m_player_in_room, m_killed_players, m_room_code , m_current_level, m_game_over);
         return scores;
     }
-    Menu *m = new Menu;
+    Menu *m = new Menu; 
     return m;
 }
 

@@ -78,6 +78,7 @@ void Enemy::spawnAt(double x, double y, Direction dir, bool isActive) {
     }
 }
 
+// active nhanh 1 enemy mà không khởi tạo hiệu ứng
 void Enemy::forceActiveState() {
     if(!testFlag(TSF_LIFE)) {
         m_sprite = Engine::getEngine().getSpriteConfig()->getSpriteData(type);

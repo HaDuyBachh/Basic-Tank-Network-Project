@@ -3,3 +3,5 @@ a:1
 laka:123
 bakku:123
 abc:123
+c:1
+d:1
