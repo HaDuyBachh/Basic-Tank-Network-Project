@@ -36,6 +36,7 @@ GameOnline::GameOnline(const std::string username, const std::string &room_code,
     m_protect_eagle_time = 0;
     m_enemy_respown_position = 0;
     m_username = username;
+    m_player_in_room = players;
 
     nextLevel();
 
@@ -296,7 +297,7 @@ AppState *GameOnline::nextState()
                                        {m_killed_players.push_back(p); return true; }),
                         m_players.end());
 
-        ScoresOnline *scores = new ScoresOnline(m_username, m_is_host, m_killed_players, m_room_code , m_current_level, m_game_over);
+        ScoresOnline *scores = new ScoresOnline(m_username, m_is_host, m_player_in_room, m_killed_players, m_room_code , m_current_level, m_game_over);
         return scores;
     }
     Menu *m = new Menu;

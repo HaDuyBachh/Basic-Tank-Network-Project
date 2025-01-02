@@ -124,6 +124,7 @@ public:
 
     int m_level_columns_count;
     int m_level_rows_count;
+    std::vector<std::string> m_player_in_room;
     std::vector<std::vector<Object *>> m_level;
     std::vector<Object *> m_bushes;
     std::vector<Enemy *> m_enemies;

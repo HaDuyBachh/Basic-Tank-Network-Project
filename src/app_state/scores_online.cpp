@@ -10,16 +10,20 @@
 #include <winsock2.h>
 #include <windows.h>
 
-ScoresOnline::ScoresOnline(const std::string &username, bool is_host, std::vector<Player *> players,
-                           const std::string &room_code, int level, bool game_over)
+ScoresOnline::ScoresOnline(const std::string &username, bool is_host,
+                           std::vector<std::string> &player_in_room,
+                           std::vector<Player *> &players,
+                           const std::string &room_code,
+                           int level, bool game_over)
     : m_username(username),
       m_is_host(is_host),
+      m_player_in_room(player_in_room),
       m_players(players),
       m_room_code(room_code),
       m_level(level),
       m_game_over(game_over)
 {
-    m_players = players;
+    players = players;
     m_is_host = is_host;
     m_room_code = room_code;
     m_level = level;
@@ -29,6 +33,7 @@ ScoresOnline::ScoresOnline(const std::string &username, bool is_host, std::vecto
     m_score_counter = 0;
     m_max_score = 0;
     m_username = username;
+    m_player_in_room = player_in_room;
 
     // Setup players
     for (auto player : m_players)
@@ -46,7 +51,8 @@ ScoresOnline::ScoresOnline(const std::string &username, bool is_host, std::vecto
     }
 
     // Save scores to files
-    saveScores();
+    if (is_host)
+        saveScores();
 }
 
 ScoresOnline::~ScoresOnline()
@@ -74,6 +80,15 @@ void ScoresOnline::saveScores()
         Player *host = nullptr;
         Player *client = nullptr;
 
+        std::string m_client_name;
+        for (auto player_name : m_player_in_room)
+        {
+            if (player_name != m_username)
+            {
+                m_client_name = player_name;
+            }
+        }
+
         for (auto player : m_players)
         {
             if (player->player_keys == AppConfig::player_keys.at(0))
@@ -86,30 +101,15 @@ void ScoresOnline::saveScores()
             }
         }
 
-        if (m_is_host)
-        {
-            if (host != nullptr)
-                ss << m_username << ":" << host->score << ":";
-            else
-                ss << "unknown:0:";
-
-            if (client != nullptr)
-                ss << m_username << ":" << client->score;
-            else
-                ss << "unknown:0";
-        }
+        if (host != nullptr)
+            ss << m_username << ":" << host->score << ":";
         else
-        {
-            if (client != nullptr)
-                ss << m_username << ":" << client->score;
-            else
-                ss << "unknown:0";
+            ss << "unknown:0:";
 
-            if (host != nullptr)
-                ss << m_username << ":" << host->score << ":";
-            else
-                ss << "unknown:0:";
-        }
+        if (client != nullptr)
+            ss << m_client_name << ":" << client->score;
+        else
+            ss << "unknown:0";
 
         std::string request = ss.str();
         send(sock, request.c_str(), request.length(), 0);
