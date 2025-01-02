@@ -46,7 +46,7 @@ ScoresOnline::ScoresOnline(const std::string &username, bool is_host, std::vecto
     }
 
     // Save scores to files
-    // saveScores();
+    saveScores();
 }
 
 ScoresOnline::~ScoresOnline()
