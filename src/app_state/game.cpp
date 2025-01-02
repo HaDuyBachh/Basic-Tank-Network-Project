@@ -401,12 +401,12 @@ void Game::eventProcess(SDL_Event *ev)
 }
 
 /*
-. = puste pole
-# = murek
-@ = kamień
-% = krzaki
-~ = woda
-- = lód
+. = không có gì
+# = bức tường thấp
+@ = cục đá
+% = bụi cây
+~ = sông
+- = đá
  */
 
 void Game::loadLevel(std::string path)

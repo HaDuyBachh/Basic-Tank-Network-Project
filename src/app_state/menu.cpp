@@ -9,6 +9,7 @@
 #include "signup_scene.h"
 #include "signin_scene.h"
 #include "room_scene.h"
+#include "history_scene.h"
 
 #include <iostream>
 
@@ -36,6 +37,7 @@ Menu::Menu()
         m_menu_texts.push_back("Welcome " + s_logged_in_username);
         m_menu_texts.push_back("Create Room");
         m_menu_texts.push_back("Join Room");
+        m_menu_texts.push_back("Match History");
         m_menu_texts.push_back("Single Player");
         m_menu_texts.push_back("Logout");
         m_menu_texts.push_back("Exit");
@@ -151,14 +153,16 @@ AppState* Menu::nextState() {
             case 1: // Create Room
                 return new RoomScene(true,s_logged_in_username);
             case 2: // Join Room
-                return new RoomScene(false,s_logged_in_username);    
-            case 3:// Join Room
+                return new RoomScene(false,s_logged_in_username); 
+            case 3: // Match History
+                return new HistoryScene(s_logged_in_username);   
+            case 4:// Join Room
                 return new Game(1);
-            case 4: // Logout
+            case 5: // Logout
                 s_is_logged_in = false;
                 s_logged_in_username = "";
                 return new Menu();
-            case 5: // Exit
+            case 6: // Exit
                 return nullptr;
         }
     } else {

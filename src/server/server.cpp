@@ -450,13 +450,13 @@ std::string handleClientData(const std::string &data)
             state.client_input.right = inputs[3];
             state.client_input.fire = inputs[4];
 
-            std::cout << "Updated input for room " << room_code << std::endl;
-            std::cout << "Input state: "
-                      << "Up=" << inputs[0]
-                      << " Down=" << inputs[1]
-                      << " Left=" << inputs[2]
-                      << " Right=" << inputs[3]
-                      << " Fire=" << inputs[4] << std::endl;
+            // std::cout << "Updated input for room " << room_code << std::endl;
+            // std::cout << "Input state: "
+            //           << "Up=" << inputs[0]
+            //           << " Down=" << inputs[1]
+            //           << " Left=" << inputs[2]
+            //           << " Right=" << inputs[3]
+            //           << " Fire=" << inputs[4] << std::endl;
         }
 
         pthread_mutex_unlock(&game_states_mutex);
@@ -608,36 +608,86 @@ void *handleTCPClient(void *arg)
     {
         // Format: save_score:room_code:level:host_name:host_score:client_name:client_score
         std::stringstream ss(request.substr(11));
-        std::string room_code, level, main_name, main_score, coop_name, coop_score;
+        std::string room_code, level, host_name, host_score, client_name, client_score;
 
         std::getline(ss, room_code, ':');
         std::getline(ss, level, ':');
-        std::getline(ss, main_name, ':');
-        std::getline(ss, main_score, ':');
-        std::getline(ss, coop_name, ':');
-        std::getline(ss, coop_score);
+        std::getline(ss, host_name, ':');
+        std::getline(ss, host_score, ':');
+        std::getline(ss, client_name, ':');
+        std::getline(ss, client_score);
+
+        std::cout << "Nhan du lieu save core" << std::endl;
 
         // Save to file
-        std::string filename = "scores/" + main_name + ".txt";
-        std::ofstream file(filename, std::ios::app);
-        if (file.is_open())
+        CreateDirectory("scores", NULL);
+        std::string host_filename = "scores/" + host_name + ".txt";
+        std::ofstream file_host(host_filename, std::ios::app);
+        if (file_host.is_open())
         {
             time_t now = time(0);
             tm *ltm = localtime(&now);
 
-            file << " Room: " << room_code << " Level:" << level
-                 << " Host:" << main_name << " Score:" << main_score
-                 << " Client:" << coop_name << " Score:" << coop_score
-                 << " Date:" << ltm->tm_mday << "/" << ltm->tm_mon + 1 << "/" << ltm->tm_year + 1900 << "\n";
+            file_host << " Room:" << room_code << " Level:" << level
+                      << "| " << host_name << " Score:" << host_score
+                      << "| teammate:" << client_name << " Score:" << client_score
+                      << "| Date:" << ltm->tm_mday << "/" << ltm->tm_mon + 1 << "/" << ltm->tm_year + 1900 << "\n";
 
+            file_host.close();
+            std::cout << "In file server thanh cong" << std::endl;
+        }
+
+        std::string client_filename = "scores/" + client_name + ".txt";
+        std::ofstream file_client(client_filename, std::ios::app);
+        if (file_client.is_open())
+        {
+            time_t now = time(0);
+            tm *ltm = localtime(&now);
+
+            file_client << "Room: " << room_code << " Level:" << level
+                        << "| " << client_name << " Score:" << client_score
+                        << "| teammate:" << host_name << " Score:" << host_score
+                        << "| Date:" << ltm->tm_mday << "/" << ltm->tm_mon + 1 << "/" << ltm->tm_year + 1900 << "\n";
+
+            file_client.close();
+
+            std::cout << "In file server thanh cong" << std::endl;
+        }
+
+        // Check if files exist after writing
+        std::ifstream check_host(host_filename);
+        std::ifstream check_client(client_filename);
+        std::cout << "Host file exists: " << check_host.good() << std::endl;
+        std::cout << "Client file exists: " << check_client.good() << std::endl;
+
+        response = "OK";
+    }
+    else if (request.find("get_history:") == 0)
+    {
+        std::string username = request.substr(12); // Skip "get_history:"
+
+        // Read from user's score file
+        std::string filename = "scores/" + username + ".txt";
+        std::ifstream file(filename);
+        std::stringstream response_ss;
+
+        if (file.is_open())
+        {
+            std::string line;
+            while (std::getline(file, line))
+            {
+                response_ss << line << ";"; // Use ; as line separator
+            }
             file.close();
-            response = "OK";
+            response = response_ss.str();
+        }
+        else
+        {
+            response = "NO_HISTORY";
         }
     }
     else
-    {
-        std::cout << "Unknown: " << request << std::endl;
-    }
+        response = "";
 
     send(client_socket, response.c_str(), response.length(), 0);
     closesocket(client_socket);
