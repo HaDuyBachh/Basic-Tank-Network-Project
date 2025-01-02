@@ -10,6 +10,7 @@
 #include "signin_scene.h"
 #include "room_scene.h"
 #include "history_scene.h"
+#include "ip_config_scene.h"
 
 #include <iostream>
 
@@ -44,6 +45,7 @@ Menu::Menu()
     } else {
         m_menu_texts.push_back("Sign In");
         m_menu_texts.push_back("Sign Up");
+        m_menu_texts.push_back("IP Config");
         m_menu_texts.push_back("1 Player Guest");
         m_menu_texts.push_back("2 Player Guest");
         m_menu_texts.push_back("Exit");
@@ -172,9 +174,11 @@ AppState* Menu::nextState() {
                 return new SigninScene();
             case 1: // Sign Up
                 return new SignupScene();
-            case 2: // Play as Guest
+            case 2: // IP Config
+                return new IPConfigScene();
+            case 3: // Play as Guest
                 return new Game(1);
-            case 3: // Exit
+            case 4: // Exit
                 return new Game(2);
             default:
                 return nullptr;

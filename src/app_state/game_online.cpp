@@ -17,6 +17,8 @@
 #include <cmath>
 #include <windows.h>
 #include <iomanip>
+#include <winsock2.h>
+#include "settings.h"
 
 GameOnline::GameOnline(const std::string username, const std::string &room_code, bool is_host, const std::vector<std::string> &players, int level)
 {
@@ -1349,7 +1351,7 @@ void GameOnline::HandleClientData()
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(8888);
-    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server_addr.sin_addr.s_addr = inet_addr(Settings::getServerIP().c_str());
 
     // Lấy trạng thái input
     const Uint8 *keystate = SDL_GetKeyboardState(NULL);
@@ -1397,7 +1399,7 @@ void GameOnline::HandleHostData()
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(8888);
-    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server_addr.sin_addr.s_addr = inet_addr(Settings::getServerIP().c_str());
 
     // Kết nối đến server
     if (connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) == 0)
@@ -1470,7 +1472,7 @@ void GameOnline::checkConnect()
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(8888);
-    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server_addr.sin_addr.s_addr = inet_addr(Settings::getServerIP().c_str());
 
     if (connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) == 0)
     {

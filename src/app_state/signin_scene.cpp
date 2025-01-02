@@ -1,6 +1,7 @@
 #include "signin_scene.h"
 #include "menu.h"
 #include <sstream>
+#include "settings.h"
 
 std::string SigninScene::current_user = "";
 
@@ -142,7 +143,7 @@ bool SigninScene::connectToServer(const std::string& username, const std::string
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(8888);
-    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server_addr.sin_addr.s_addr = inet_addr(Settings::getServerIP().c_str());
 
     if (connect(sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) == 0) {
         // Thêm "signin:" vào đầu request để phân biệt với signup

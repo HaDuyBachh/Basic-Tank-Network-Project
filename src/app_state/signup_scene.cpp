@@ -1,6 +1,8 @@
 #include "signup_scene.h"
 #include "menu.h"
 #include <sstream>
+#include <winsock2.h>
+#include "settings.h"
 
 SignupScene::SignupScene() {
     m_username = "";
@@ -154,7 +156,7 @@ bool SignupScene::connectToServer(const std::string& username, const std::string
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(8888);
-    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server_addr.sin_addr.s_addr = inet_addr(Settings::getServerIP().c_str());
 
     if (connect(sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) == 0) {
         std::string request = "signup:username=" + username + "&password=" + password;

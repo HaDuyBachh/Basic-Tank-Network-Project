@@ -6,6 +6,7 @@
 #include <fstream>
 #include <winsock2.h>
 #include "../appconfig.h"
+#include "settings.h"
 
 RoomScene::RoomScene(bool isHost, const std::string &username)
 {
@@ -136,7 +137,7 @@ bool RoomScene::checkGameStarted()
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(8888);
-    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server_addr.sin_addr.s_addr = inet_addr(Settings::getServerIP().c_str());
 
     bool game_started = false;
 
@@ -169,7 +170,7 @@ void RoomScene::startGame()
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(8888);
-    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server_addr.sin_addr.s_addr = inet_addr(Settings::getServerIP().c_str());
 
     if (connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) == 0)
     {
@@ -193,7 +194,7 @@ bool RoomScene::createRoom(const std::string &room_code)
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(8888);
-    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server_addr.sin_addr.s_addr = inet_addr(Settings::getServerIP().c_str());
 
     if (connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) == 0)
     {
@@ -230,7 +231,7 @@ bool RoomScene::joinRoom(const std::string &room_code)
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(8888);
-    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server_addr.sin_addr.s_addr = inet_addr(Settings::getServerIP().c_str());
 
     if (connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) == 0)
     {
@@ -267,7 +268,7 @@ void RoomScene::leaveRoom()
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(8888);
-    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server_addr.sin_addr.s_addr = inet_addr(Settings::getServerIP().c_str());
 
     if (connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) == 0)
     {
@@ -292,7 +293,7 @@ void RoomScene::updatePlayerList()
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(8888);
-    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server_addr.sin_addr.s_addr = inet_addr(Settings::getServerIP().c_str());
 
     if (connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) == 0)
     {
@@ -328,7 +329,7 @@ void RoomScene::sendLevelUpdate()
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(8888);
-    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server_addr.sin_addr.s_addr = inet_addr(Settings::getServerIP().c_str());
 
     if (connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) == 0)
     {
@@ -350,7 +351,7 @@ void RoomScene::checkLevelUpdate()
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(8888);
-    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server_addr.sin_addr.s_addr = inet_addr(Settings::getServerIP().c_str());
 
     if (connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) == 0)
     {

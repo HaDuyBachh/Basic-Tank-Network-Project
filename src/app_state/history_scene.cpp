@@ -5,6 +5,7 @@
 #include <fstream>
 #include <sstream>
 #include <winsock2.h>
+#include "settings.h"
 
 HistoryScene::HistoryScene(const std::string &username)
 {
@@ -38,7 +39,7 @@ void HistoryScene::HandleHistoryData(const std::string &username)
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(8888);
-    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server_addr.sin_addr.s_addr = inet_addr(Settings::getServerIP().c_str());
 
     if (connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) == 0)
     {
