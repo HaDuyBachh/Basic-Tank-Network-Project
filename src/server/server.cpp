@@ -477,6 +477,7 @@ void *handleTCPClient(void *arg)
     std::string request(buffer);
     std::string response;
 
+    //Xử lí truyền dòng (giải mã hoặc xử lí để gửi lại cho client)
     if (request.find("signin:") == 0)
     {
         // Format: signin:username&password
@@ -714,6 +715,7 @@ int main()
 
     std::cout << "Server running on TCP port " << TCP_PORT << std::endl;
 
+    /// Cơ chế quản lí, xử lí vào ra socket
     while (true)
     {
         ClientData *client_data = new ClientData;

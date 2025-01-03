@@ -4,7 +4,6 @@
 #include "../appconfig.h"
 #include "../type.h"
 #include "../app_state/game.h"
-#include "input_scene.h"
 #include "game_online.h"
 #include "signup_scene.h"
 #include "signin_scene.h"
@@ -92,7 +91,7 @@ void Menu::draw()
     // Hiển thị tất cả menu items, kể cả khi đã đăng nhập
     for(auto text : m_menu_texts) {
 
-                        x   y
+                     //   x   y
         text_start = {160, (i + 1) * 32 + 120};
         
         // Nếu là welcome message thì đổi màu
@@ -157,6 +156,7 @@ bool Menu::finished() const
 
 AppState* Menu::nextState() {
     if (s_is_logged_in) {
+        // Logic Menu
         // Menu cho người dùng đã đăng nhập
         switch(m_menu_index) {
             case 0:
@@ -164,9 +164,9 @@ AppState* Menu::nextState() {
             case 1: // Create Room
                 return new RoomScene(true,s_logged_in_username);
             case 2: // Join Room
-                return new RoomScene(false,s_logged_in_username); 
+                return new RoomScene(false,s_logged_in_username);
             case 3: // Match History
-                return new HistoryScene(s_logged_in_username);   
+                return new HistoryScene(s_logged_in_username);
             case 4:// Join Room
                 return new Game(1);
             case 5: // Logout

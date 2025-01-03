@@ -332,6 +332,7 @@ void RoomScene::sendLevelUpdate()
     server_addr.sin_port = htons(8888);
     server_addr.sin_addr.s_addr = inet_addr(Settings::getServerIP().c_str());
 
+    //Một chỗ xử lí truyền dòng
     if (connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) == 0)
     {
         std::string request = "update_level:" + m_current_room_code + ":" +

@@ -22,6 +22,7 @@ Enemy::Enemy()
 
     m_frozen_time = 0;
 
+    // Tank B là tank nhanh nhất
     if (type == ST_TANK_B)
         default_speed = AppConfig::tank_default_speed * 1.3;
     else
@@ -60,27 +61,32 @@ Enemy::Enemy(double x, double y, SpriteType type)
     respawn();
 }
 
-
-void Enemy::spawnAt(double x, double y, Direction dir, bool isActive) {
+void Enemy::spawnAt(double x, double y, Direction dir, bool isActive)
+{
     pos_x = x;
     pos_y = y;
     direction = dir;
-    
-    if(isActive) {
+
+    if (isActive)
+    {
         // Skip spawn animation, directly set active state
         m_sprite = Engine::getEngine().getSpriteConfig()->getSpriteData(type);
         clearFlag(TSF_CREATE);
         setFlag(TSF_LIFE);
         m_current_frame = 0;
-    } else {
+    }
+    else
+    {
         // Normal spawn with animation
         respawn();
     }
 }
 
 // active nhanh 1 enemy mà không khởi tạo hiệu ứng
-void Enemy::forceActiveState() {
-    if(!testFlag(TSF_LIFE)) {
+void Enemy::forceActiveState()
+{
+    if (!testFlag(TSF_LIFE))
+    {
         m_sprite = Engine::getEngine().getSpriteConfig()->getSpriteData(type);
         clearFlag(TSF_CREATE);
         setFlag(TSF_LIFE);
@@ -140,8 +146,11 @@ void Enemy::update(Uint32 dt)
 {
     if (to_erase)
         return;
+
+    /// Tank update chỉ xử lí hình ảnh và hiệu ứng
     Tank::update(dt);
 
+    // Kiểm tra coi đã sinh ra tank hay chưa
     if (testFlag(TSF_LIFE))
     {
         if (testFlag(TSF_BONUS))
@@ -152,6 +161,7 @@ void Enemy::update(Uint32 dt)
     else
         src_rect = moveRect(m_sprite->rect, 0, m_current_frame);
 
+    // Bị đóng băng thì k update nữa
     if (testFlag(TSF_FROZEN))
         return;
 
@@ -159,27 +169,38 @@ void Enemy::update(Uint32 dt)
     m_speed_time += dt;
     m_fire_time += dt;
 
-    /// Kiểm tra thời gian đổi hướng
+    /// Kiểm tra thời gian đổi hướng của AI Game
     if (m_direction_time > m_keep_direction_time)
     {
+        //Thời gian để đổi hướng 
         m_direction_time = 0;
+
+        ///Thời gian giữ hướng
         m_keep_direction_time = rand() % 800 + 100;
 
+        // P là biến quản lí cơ hội đi được đén mục tiêu
         float p = static_cast<float>(rand()) / RAND_MAX;
 
+        // Tank loại A có 80% cơ hội đi về phía target
+        // Tank khác có 50% cơ hội đi về phía target
         if (p < (type == ST_TANK_A ? 0.8 : 0.5) && target_position.x > 0 && target_position.y > 0)
         {
+            // Tính khoảng cách đến mục tiêu theo x và y
             int dx = target_position.x - (dest_rect.x + dest_rect.w / 2);
             int dy = target_position.y - (dest_rect.y + dest_rect.h / 2);
 
+            // Nếu khoảng cách x lớn hơn y
             p = static_cast<float>(rand()) / RAND_MAX;
 
+            // 70% đi theo trục x, 30% đi theo trục y
             if (abs(dx) > abs(dy))
                 setDirection(p < 0.7 ? (dx < 0 ? D_LEFT : D_RIGHT) : (dy < 0 ? D_UP : D_DOWN));
             else
+                // 70% đi theo trục y, 30% đi theo trục x
                 setDirection(p < 0.7 ? (dy < 0 ? D_UP : D_DOWN) : (dx < 0 ? D_LEFT : D_RIGHT));
         }
         else
+            // 70% đi theo trục y, 30% đi theo trục x
             setDirection(static_cast<Direction>(rand() % 4));
     }
 
@@ -195,12 +216,17 @@ void Enemy::update(Uint32 dt)
     if (m_fire_time > m_reload_time)
     {
         m_fire_time = 0;
+
+        // Tank D (tốc độ bắn cao nhất)
         if (type == ST_TANK_D)
         {
-            m_reload_time = rand() % 400;
+            m_reload_time = rand() % 400; // Tốc độ bắn nhanh nhất
             int dx = target_position.x - (dest_rect.x + dest_rect.w / 2);
             int dy = target_position.y - (dest_rect.y + dest_rect.h / 2);
 
+            // Chỉ bắn khi:
+            // - Tank đứng yên HOẶC
+            // - Target nằm thẳng hàng với hướng tank đang nhìn
             if (stop)
                 fire();
             else
@@ -224,11 +250,13 @@ void Enemy::update(Uint32 dt)
                     break;
                 }
         }
+         // Tank C: Bắn ngẫu nhiên nhưng nhanh 
         else if (type == ST_TANK_C)
         {
             m_reload_time = rand() % 800;
             fire();
         }
+        // Tank A,B: Bắn chậm và ngẫu nhiên
         else
         {
             m_reload_time = rand() % 1000;

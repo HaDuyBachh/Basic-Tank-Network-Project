@@ -139,6 +139,8 @@ void GameOnline::draw()
     renderer->flush();
 }
 
+/// @brief Xử lí va chạm giữa các object để xe dừng lại khi va chạm | và đạn tác động và bị phí hủy khi va chạm vào object khác
+/// @param dt 
 void GameOnline::updateCollider(Uint32 dt)
 {
     std::vector<Player *>::iterator pl1, pl2;
@@ -923,6 +925,13 @@ std::string GameOnline::GameStateSendData()
     GameSnapshot snapshot = captureGameState();
     std::stringstream ss;
 
+    // File dữ liệu gửi liên tục ~ (350 * 4 byte mỗi 50ms)
+    // game_state:room_code:current_level,game_over,game_over_position,eagle_destroyed,enemy_to_kill
+    // :player:count:pos_x,pos_y,direction,is_firing,is_destroyed,lives_count,star_count,score;bullets_count:pos_x,pos_y,direction,collide,increased_damage|#
+    // enemies:count:pos_x,pos_y,direction,type,lives_count,is_destroyed,has_bonus;bullets_count:pos_x,pos_y,direction,collide,increased_damage|#
+    // bonuses:count:pos_x,pos_y,type,is_active#
+    // brick_sprites:row,column,x,y,w,h#
+
     // Game state header
     ss << "game_state:" << m_room_code << ":"
        << snapshot.current_level << ","
@@ -1390,6 +1399,7 @@ void GameOnline::HandleClientData()
     WSACleanup();
 }
 
+/// @brief Tác dụng là lấy Game state của host và mã hóa thành file data gửi lên server sau đó, nhận dữ liệu response từ server (là dữ liệu input của client) và thực hiện di chuyển thằng client
 void GameOnline::HandleHostData()
 {
     // Khởi tạo Winsock
@@ -1505,6 +1515,11 @@ void GameOnline::ClientUpdate(Uint32 dt)
         }
         return;
     }
+
+    // 350 * 4 byte = 1400 bytes
+    //1 màn chơi ~ 2000 / 50ms
+    //6 màn      ~ 6000 / 50ms
+    //               20*6000 = 120000
 
     // kiểm tra va chạm của quả bóng với tường
     for (auto enemy : m_enemies)
@@ -1624,24 +1639,34 @@ void GameOnline::ClientUpdate(Uint32 dt)
     }
 }
 
+/// @brief Thực hiện xử lí logic của màn chơi, kiểm soát va chạm update logic của tất cả các enemy, player, bullet, bonus, eagle, bush.
+/// @param dt 
 void GameOnline::HostUpdate(Uint32 dt)
 {
     if (m_pause)
         return;
 
+
     updateCollider(dt);
 
-    // ấn định mục tiêu của đối thủ
+    // Chọn định mục tiêu của đối thủ (AI Game)
     int min_metric; // 2 * 26 * 16
     int metric;
     SDL_Point target;
+    // Logic chọn mục tiêu cho xe tăng địch
     for (auto enemy : m_enemies)
     {
-        min_metric = 832;
+        min_metric = 832;// Khoảng cách tối đa ban đầu (độ rộng tối đa của map)
+
+        // Chỉ xe tăng loại A và D mới có khả năng nhắm mục tiêu
         if (enemy->type == ST_TANK_A || enemy->type == ST_TANK_D)
+
+            // Tính khoảng cách Manhattan đến người chơi (trị đối)
             for (auto player : m_players)
             {
                 metric = fabs(player->dest_rect.x - enemy->dest_rect.x) + fabs(player->dest_rect.y - enemy->dest_rect.y);
+                
+                // Cập nhật mục tiêu nếu tìm thấy mục tiêu gần hơn
                 if (metric < min_metric)
                 {
                     min_metric = metric;
@@ -1655,12 +1680,15 @@ void GameOnline::HostUpdate(Uint32 dt)
             target = {m_eagle->dest_rect.x + m_eagle->dest_rect.w / 2, m_eagle->dest_rect.y + m_eagle->dest_rect.h / 2};
         }
 
+        // Cập nhật vị trí mục tiêu cho enemy
         enemy->target_position = target;
     }
 
-    // Cập nhật tất cả các đối tượng
+    // Cập nhật tất cả các đối tượng xử lí tìm đường ở update
     for (auto enemy : m_enemies)
         enemy->update(dt);
+
+
     for (auto player : m_players)
     {
         if (player->player_keys == AppConfig::player_keys.at(1))
