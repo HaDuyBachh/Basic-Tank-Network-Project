@@ -95,6 +95,27 @@ void writeRoomFile(const std::string &room_code, const std::string &host, const 
     }
 }
 
+// Thêm vào đầu file sau các includes
+void writeLog(const std::string& action, const std::string& username, const std::string& status) {
+    std::ofstream logFile("log.txt", std::ios::app);
+    if (logFile.is_open()) {
+        time_t now = time(0);
+        tm* ltm = localtime(&now);
+        
+        logFile << "[" << ltm->tm_mday << "/" 
+               << ltm->tm_mon + 1 << "/"
+               << ltm->tm_year + 1900 << " "
+               << ltm->tm_hour << ":" 
+               << ltm->tm_min << ":" 
+               << ltm->tm_sec << "] | "
+               << action << " | "
+               << username << " | "
+               << status << std::endl;
+        
+        logFile.close();
+    }
+}
+
 std::string handleUpdateLevel(const std::string &room_code, int level)
 {
     pthread_mutex_lock(&rooms_mutex);
@@ -494,6 +515,9 @@ void *handleTCPClient(void *arg)
             player.is_authenticated = true;
             players[username] = player;
             pthread_mutex_unlock(&players_mutex);
+
+            // Thêm ghi log
+            writeLog("SIGNIN", username, "SUCCESS");
             response = "OK";
         }
         else
